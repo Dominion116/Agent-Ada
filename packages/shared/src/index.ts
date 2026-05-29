@@ -1,3 +1,4 @@
+export * from "./db.js";
 export * from "./schemas/agent-command.js";
 export * from "./schemas/api-call.js";
 export * from "./schemas/chat.js";
