@@ -1,0 +1,25 @@
+{
+  "name": "agent-ada",
+  "version": "1.0.0",
+  "description": "CLI for Agent Ada — autonomous stablecoin treasury agent on Celo",
+  "type": "module",
+  "bin": {
+    "ada": "./dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsx watch src/index.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@ada/shared": "1.0.0",
+    "commander": "^12.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "tsx": "^4.16.0",
+    "typescript": "^5.5.0"
+  },
+  "keywords": ["celo", "defi", "yield", "agent", "stablecoin"],
+  "license": "MIT"
+}
