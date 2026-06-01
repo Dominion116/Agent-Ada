@@ -1,11 +1,10 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
-    "rootDir": "./src",
     "noEmit": true,
     "paths": {
       "@ada/shared": ["../shared/src/index.ts"]
     }
   },
-  "include": ["src"]
+  "include": ["src", "scripts", "../shared/src/index.ts", "../shared/src/db.ts", "../shared/src/schemas"]
 }

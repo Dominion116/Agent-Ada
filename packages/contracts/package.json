@@ -12,7 +12,8 @@
   },
   "dependencies": {
     "@ada/shared": "1.0.0",
-    "viem": "^2.21.0"
+    "@lifi/sdk": "^3.16.3",
+    "viem": "^2.52.0"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

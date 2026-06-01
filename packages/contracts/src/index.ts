@@ -1,3 +1,6 @@
-// Phase 2: onchain identity, x402 config, Moola ABIs, LI.FI wrappers
-// Populated during Phase 2 implementation
-export {};
+export * from "./types.js";
+export * from "./agent-metadata.js";
+export * from "./x402-config.js";
+export * from "./moola/abis.js";
+export * from "./moola/contracts.js";
+export * from "./lifi/client.js";
