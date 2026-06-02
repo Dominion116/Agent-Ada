@@ -1,11 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
   Activity,
   BadgeCheck,
+  ChevronLeft,
+  ChevronRight,
   LayoutDashboard,
   LogOut,
   MessageSquare,
@@ -40,26 +42,13 @@ function isActive(pathname: string, href: string): boolean {
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
-  const { hasSession, walletAddress, signOut } = useAuth();
-  const [mounted, setMounted] = useState(false);
+  const { walletAddress, signOut } = useAuth();
   const [moreOpen, setMoreOpen] = useState(false);
+  const [collapsed, setCollapsed] = useState(false);
 
-  useEffect(() => setMounted(true), []);
-  useEffect(() => {
-    if (mounted && !hasSession) router.replace("/");
-  }, [mounted, hasSession, router]);
-
-  // While resolving the session, hold a calm branded screen to avoid a flash.
-  if (!mounted || !hasSession) {
-    return (
-      <div
-        className="flex min-h-screen items-center justify-center"
-        style={{ backgroundColor: "var(--brand-ink)", color: "var(--brand-white)" }}
-      >
-        <span className="eyebrow opacity-60">Loading Ada</span>
-      </div>
-    );
-  }
+  // Wallet gating is disabled for now: the dashboard renders without a session
+  // so screens can be reviewed before auth is wired end to end. Re-enable by
+  // redirecting to "/" when `useAuth().hasSession` is false.
 
   function handleSignOut() {
     signOut();
@@ -67,39 +56,89 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   }
 
   const more = NAV.filter((n) => !n.primary);
+  const sidebarW = collapsed ? "w-[60px]" : "w-60";
+  const contentPl = collapsed ? "md:pl-[60px]" : "md:pl-60";
 
   return (
     <div className="min-h-screen bg-background">
       {/* Desktop sidebar */}
-      <aside className="fixed inset-y-0 left-0 z-30 hidden w-60 flex-col border-r bg-card md:flex">
-        <div className="flex h-16 items-center border-b px-6">
-          <Link href="/" className="text-lg font-extrabold uppercase tracking-[0.3em]">
+      <aside
+        className={cn(
+          "fixed inset-y-0 left-0 z-30 hidden flex-col border-r bg-card transition-[width] duration-200 md:flex",
+          sidebarW,
+        )}
+      >
+        {/* Wordmark / logo row */}
+        <div
+          className={cn(
+            "flex h-16 shrink-0 items-center border-b",
+            collapsed ? "justify-center px-0" : "justify-between px-5",
+          )}
+        >
+          <Link
+            href="/"
+            className={cn(
+              "font-extrabold uppercase tracking-[0.3em] transition-[font-size]",
+              collapsed ? "text-sm" : "text-base",
+            )}
+            title="Go to homepage"
+          >
             Ada
           </Link>
+
+          {/* Collapse toggle — outside the Link so clicks don't navigate */}
+          {!collapsed && (
+            <button
+              type="button"
+              onClick={() => setCollapsed(true)}
+              aria-label="Collapse sidebar"
+              className="rounded-md p-1 text-muted-foreground hover:bg-accent hover:text-foreground"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </button>
+          )}
         </div>
-        <nav className="flex-1 space-y-1 p-3">
+
+        {/* Nav links */}
+        <nav className="flex-1 space-y-1 overflow-hidden p-2">
           {NAV.map((item) => {
             const active = isActive(pathname, item.href);
             return (
               <Link
                 key={item.href}
                 href={item.href}
+                title={collapsed ? item.label : undefined}
                 className={cn(
-                  "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
+                  "flex items-center rounded-md px-2 py-2 text-sm font-medium transition-colors",
+                  collapsed ? "justify-center gap-0" : "gap-3",
                   active
                     ? "bg-primary/10 text-primary"
                     : "text-muted-foreground hover:bg-accent hover:text-foreground",
                 )}
               >
                 <item.icon className="h-4 w-4 shrink-0" />
-                {item.label}
+                {!collapsed && <span>{item.label}</span>}
               </Link>
             );
           })}
         </nav>
+
+        {/* Expand button at the bottom when collapsed */}
+        {collapsed && (
+          <div className="flex justify-center border-t p-2">
+            <button
+              type="button"
+              onClick={() => setCollapsed(false)}
+              aria-label="Expand sidebar"
+              className="rounded-md p-1.5 text-muted-foreground hover:bg-accent hover:text-foreground"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </button>
+          </div>
+        )}
       </aside>
 
-      <div className="md:pl-60">
+      <div className={cn("transition-[padding] duration-200", contentPl)}>
         {/* Top bar */}
         <header className="sticky top-0 z-20 flex h-16 items-center justify-between gap-3 border-b bg-background/90 px-4 backdrop-blur md:px-8">
           <span className="text-base font-extrabold uppercase tracking-[0.25em] md:hidden">
