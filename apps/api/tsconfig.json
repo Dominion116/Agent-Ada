@@ -7,5 +7,9 @@
       "@ada/contracts": ["../../packages/contracts/src/index.ts"]
     }
   },
-  "include": ["src", "../../packages/shared/src", "../../packages/contracts/src"]
+  "include": [
+    "src",
+    "../../packages/shared/src",
+    "../../packages/contracts/src"
+  ]
 }
