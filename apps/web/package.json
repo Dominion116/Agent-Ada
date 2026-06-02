@@ -11,8 +11,6 @@
   },
   "dependencies": {
     "@ada/shared": "1.0.0",
-    "@dynamic-labs/ethereum": "^4.86.0",
-    "@dynamic-labs/sdk-react-core": "^4.86.0",
     "@radix-ui/react-dialog": "^1.1.6",
     "@radix-ui/react-label": "^2.1.2",
     "@radix-ui/react-slot": "^1.1.2",

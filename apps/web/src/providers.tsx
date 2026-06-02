@@ -1,17 +1,16 @@
 "use client";
 
-import { DynamicContextProvider } from "@dynamic-labs/sdk-react-core";
 import { SWRConfig } from "swr";
-import { dynamicSettings } from "@/lib/dynamic-config";
+import { WalletProvider } from "@/hooks/use-wallet";
 
 /**
  * Root client providers:
- *   - DynamicContextProvider: wallet connection (MiniPay, injected, WalletConnect)
+ *   - WalletProvider: lean EIP-1193 wallet connection (MiniPay + injected)
  *   - SWRConfig: shared data-fetching defaults with 30s revalidation
  */
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
-    <DynamicContextProvider settings={dynamicSettings}>
+    <WalletProvider>
       <SWRConfig
         value={{
           refreshInterval: 30_000,
@@ -21,6 +20,6 @@ export function Providers({ children }: { children: React.ReactNode }) {
       >
         {children}
       </SWRConfig>
-    </DynamicContextProvider>
+    </WalletProvider>
   );
 }

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { ConnectButton } from "@/components/connect-button";
 
 /**
  * Placeholder landing page. The full marketing landing (hero, features,
@@ -20,12 +21,11 @@ export default function HomePage() {
         </p>
       </div>
 
+      <ConnectButton />
+
       <div className="flex flex-col gap-3 sm:flex-row">
-        <Button asChild size="lg">
-          <Link href="/dashboard">Open Dashboard</Link>
-        </Button>
         <Button asChild size="lg" variant="outline">
-          <Link href="/docs">Read the Docs</Link>
+          <Link href="/dashboard">Open Dashboard</Link>
         </Button>
       </div>
 

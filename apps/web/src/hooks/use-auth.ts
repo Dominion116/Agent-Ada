@@ -1,27 +1,20 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import {
-  useDynamicContext,
-  useIsLoggedIn,
-} from "@dynamic-labs/sdk-react-core";
+import { useWallet } from "@/hooks/use-wallet";
 import { fetchNonce, verifySignature, setToken, clearToken, getToken } from "@/lib/api";
 
 /**
- * Bridges a connected Dynamic wallet to an Ada backend session.
+ * Bridges a connected wallet to an Ada backend session via SIWE.
  *
  * Flow:
- *   1. User connects a wallet via Dynamic.
+ *   1. User connects a wallet (MiniPay auto-connects).
  *   2. We request a nonce from the backend.
  *   3. We build a SIWE message and ask the wallet to sign it.
  *   4. We exchange the signature for a backend JWT.
- *
- * Exposes the session state and a signIn() trigger. The dashboard layout
- * calls signIn() automatically once a wallet is connected.
  */
 export function useAuth() {
-  const { primaryWallet, handleLogOut } = useDynamicContext();
-  const isWalletConnected = useIsLoggedIn();
+  const { address, isConnected, connect, disconnect, signMessage, connecting } = useWallet();
   const [hasSession, setHasSession] = useState(false);
   const [signingIn, setSigningIn] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -31,17 +24,14 @@ export function useAuth() {
   }, []);
 
   const signIn = useCallback(async () => {
-    if (!primaryWallet?.address) return;
+    if (!address) return;
     setSigningIn(true);
     setError(null);
 
     try {
-      const wallet = primaryWallet.address;
-      const nonce = await fetchNonce(wallet);
-
-      const message = buildSiweMessage(wallet, nonce);
-      const signature = await primaryWallet.signMessage(message);
-      if (!signature) throw new Error("Signature was rejected");
+      const nonce = await fetchNonce(address);
+      const message = buildSiweMessage(address, nonce);
+      const signature = await signMessage(message);
 
       const { token } = await verifySignature(message, signature);
       setToken(token);
@@ -52,20 +42,22 @@ export function useAuth() {
     } finally {
       setSigningIn(false);
     }
-  }, [primaryWallet]);
+  }, [address, signMessage]);
 
-  const signOut = useCallback(async () => {
+  const signOut = useCallback(() => {
     clearToken();
     setHasSession(false);
-    await handleLogOut();
-  }, [handleLogOut]);
+    disconnect();
+  }, [disconnect]);
 
   return {
-    walletAddress: primaryWallet?.address ?? null,
-    isWalletConnected,
+    walletAddress: address,
+    isWalletConnected: isConnected,
     hasSession,
+    connecting,
     signingIn,
     error,
+    connect,
     signIn,
     signOut,
   };
