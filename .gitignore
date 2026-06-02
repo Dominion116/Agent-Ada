@@ -1,6 +1,8 @@
 # Project docs (not for version control)
 agent-ada-prd.docx
 implementation-plan.md
+LANDING_PLAN.md
+DESIGN_SYSTEM.md
 
 # Dependencies
 node_modules/
