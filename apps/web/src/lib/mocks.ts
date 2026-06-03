@@ -371,4 +371,6 @@ export const mockApi: ApiClient = {
       selfAgentId: "self:agent:ada-001",
       chains: ["celo", "base", "polygon", "arbitrum", "optimism"],
     }),
+
+  deleteAllData: () => delay({ ok: true }, 400),
 };

@@ -165,6 +165,8 @@ const realApi = {
       selfAgentId: string | null;
       chains: string[];
     }>("/api/agent/profile", { auth: false }),
+
+  deleteAllData: () => request<{ ok: boolean }>("/api/agent/data", { method: "DELETE" }),
 };
 
 /** Shape of the typed endpoint client, shared by the real and mock backends. */
