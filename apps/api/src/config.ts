@@ -13,7 +13,8 @@ const EnvSchema = z.object({
   AGENT_PRIVATE_KEY: z.string().startsWith("0x"),
   CELO_RPC_URL: z.string().url().default("https://forno.celo.org"),
   // External
-  GEMINI_API_KEY: z.string().min(1),
+  GROQ_API_KEY: z.string().min(1),
+  GROQ_MODEL: z.string().optional(),
   // Optional
   AGENT_CONFIG_CIPHER_KEY: z.string().optional(),
   TELEGRAM_WEBHOOK_SECRET: z.string().optional(),

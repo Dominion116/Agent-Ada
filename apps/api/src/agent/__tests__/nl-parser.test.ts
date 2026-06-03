@@ -1,14 +1,14 @@
 import { describe, it, expect, vi } from "vitest";
-import { parseCommand, composeExplanation, type GeminiClient } from "../nl-parser.js";
+import { parseCommand, composeExplanation, type LLMClient } from "../nl-parser.js";
 import type { Run } from "@ada/shared";
 
 // ── Mock client builder ───────────────────────────────────────
 
-function makeClient(response: string): GeminiClient {
+function makeClient(response: string): LLMClient {
   return { chat: vi.fn().mockResolvedValue(response) };
 }
 
-function makeFailingClient(): GeminiClient {
+function makeFailingClient(): LLMClient {
   return { chat: vi.fn().mockRejectedValue(new Error("quota exceeded")) };
 }
 
@@ -17,35 +17,35 @@ const WALLET = "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045";
 // ── Hard-coded shortcuts (no LLM call) ───────────────────────
 
 describe("parseCommand — shortcuts (no LLM)", () => {
-  it("parses 'check yields' without calling Gemini", async () => {
+  it("parses 'check yields' without calling the LLM", async () => {
     const client = makeClient("should not be called");
     const cmd = await parseCommand("check yields", WALLET, client);
     expect(cmd.type).toBe("check_yields");
     expect(client.chat).not.toHaveBeenCalled();
   });
 
-  it("parses 'yields' shorthand without calling Gemini", async () => {
+  it("parses 'yields' shorthand without calling the LLM", async () => {
     const client = makeClient("irrelevant");
     const cmd = await parseCommand("yields", WALLET, client);
     expect(cmd.type).toBe("check_yields");
     expect(client.chat).not.toHaveBeenCalled();
   });
 
-  it("parses 'check balance' without calling Gemini", async () => {
+  it("parses 'check balance' without calling the LLM", async () => {
     const client = makeClient("irrelevant");
     const cmd = await parseCommand("check balance", WALLET, client);
     expect(cmd.type).toBe("check_balance");
     expect(client.chat).not.toHaveBeenCalled();
   });
 
-  it("parses 'balance' shorthand without calling Gemini", async () => {
+  it("parses 'balance' shorthand without calling the LLM", async () => {
     const client = makeClient("irrelevant");
     const cmd = await parseCommand("balance", WALLET, client);
     expect(cmd.type).toBe("check_balance");
     expect(client.chat).not.toHaveBeenCalled();
   });
 
-  it("parses 'explain last run' without calling Gemini", async () => {
+  it("parses 'explain last run' without calling the LLM", async () => {
     const client = makeClient("irrelevant");
     const cmd = await parseCommand("explain last run", WALLET, client);
     expect(cmd.type).toBe("explain_last_run");
@@ -53,10 +53,10 @@ describe("parseCommand — shortcuts (no LLM)", () => {
   });
 });
 
-// ── parseCommand via Gemini ───────────────────────────────────
+// ── parseCommand via LLM ───────────────────────────────────
 
-describe("parseCommand — Gemini path", () => {
-  it("parses check_yields from Gemini JSON", async () => {
+describe("parseCommand — LLM path", () => {
+  it("parses check_yields from LLM JSON", async () => {
     const cmd = await parseCommand(
       "What yields are available right now?",
       WALLET,
@@ -65,7 +65,7 @@ describe("parseCommand — Gemini path", () => {
     expect(cmd.type).toBe("check_yields");
   });
 
-  it("parses check_balance from Gemini JSON", async () => {
+  it("parses check_balance from LLM JSON", async () => {
     const cmd = await parseCommand(
       "How much USDC do I have?",
       WALLET,
@@ -136,14 +136,14 @@ describe("parseCommand — Gemini path", () => {
     expect(cmd.type).toBe("check_yields");
   });
 
-  it("falls back to unknown when Gemini returns malformed JSON", async () => {
+  it("falls back to unknown when the LLM returns malformed JSON", async () => {
     const raw = "how much yield am i getting";
     const cmd = await parseCommand(raw, WALLET, makeClient("not json at all"));
     expect(cmd.type).toBe("unknown");
     if (cmd.type === "unknown") expect(cmd.raw).toBe(raw);
   });
 
-  it("falls back to unknown when Gemini returns an invalid command type", async () => {
+  it("falls back to unknown when the LLM returns an invalid command type", async () => {
     const raw = "delete my account";
     const cmd = await parseCommand(
       raw,
@@ -154,7 +154,7 @@ describe("parseCommand — Gemini path", () => {
     if (cmd.type === "unknown") expect(cmd.raw).toBe(raw);
   });
 
-  it("falls back to unknown when Gemini call fails", async () => {
+  it("falls back to unknown when the LLM call fails", async () => {
     const raw = "do something";
     const cmd = await parseCommand(raw, WALLET, makeFailingClient());
     expect(cmd.type).toBe("unknown");
@@ -190,7 +190,7 @@ function makeRun(overrides: Partial<Run> = {}): Run {
 }
 
 describe("composeExplanation", () => {
-  it("calls Gemini with a prompt containing run details", async () => {
+  it("calls the LLM with a prompt containing run details", async () => {
     const client = makeClient("Your rebalance moved funds from Moola to Aave.");
     await composeExplanation(makeRun(), client);
     expect(client.chat).toHaveBeenCalledOnce();
@@ -199,18 +199,18 @@ describe("composeExplanation", () => {
     expect(userMessage).toContain("moola");
   });
 
-  it("returns the Gemini response string", async () => {
+  it("returns the LLM response string", async () => {
     const expected = "Ada moved your USDC from Moola on Celo to Aave V3 on Base.";
     const result = await composeExplanation(makeRun(), makeClient(expected));
     expect(result).toBe(expected);
   });
 
-  it("returns a template message for a completed run when Gemini fails", async () => {
+  it("returns a template message for a completed run when the LLM fails", async () => {
     const result = await composeExplanation(makeRun({ status: "completed" }), makeFailingClient());
     expect(result).toMatch(/completed successfully/i);
   });
 
-  it("returns a template message for a dry run when Gemini fails", async () => {
+  it("returns a template message for a dry run when the LLM fails", async () => {
     const result = await composeExplanation(
       makeRun({ mode: "dry_run", status: "dry_run_complete" }),
       makeFailingClient(),
@@ -218,7 +218,7 @@ describe("composeExplanation", () => {
     expect(result).toMatch(/simulation/i);
   });
 
-  it("returns a template message with error text for a failed run when Gemini fails", async () => {
+  it("returns a template message with error text for a failed run when the LLM fails", async () => {
     const run = makeRun({
       status: "failed",
       outcome: { error: "kill switch is active" },

@@ -1,37 +1,42 @@
 import { AgentCommandSchema, type AgentCommand, type Run, type TxRecord } from "@ada/shared";
 
-// ── Injectable Gemini client interface ────────────────────────
+// ── Injectable LLM client interface ───────────────────────────
+// Kept provider-agnostic so tests can inject a mock without network calls.
 
-export interface GeminiClient {
+export interface LLMClient {
   chat(systemPrompt: string, userMessage: string): Promise<string>;
 }
 
-// ── Real Gemini implementation ────────────────────────────────
+// ── Groq implementation ────────────────────────────────────────
 
-export class GeminiSdkClient implements GeminiClient {
+export class GroqSdkClient implements LLMClient {
   private model: string;
 
-  constructor(model = process.env["GEMINI_MODEL"] ?? "gemini-1.5-flash") {
+  constructor(model = process.env["GROQ_MODEL"] ?? "llama-3.3-70b-versatile") {
     this.model = model;
   }
 
   async chat(systemPrompt: string, userMessage: string): Promise<string> {
-    const { GoogleGenerativeAI } = await import("@google/generative-ai");
-    const apiKey = process.env["GEMINI_API_KEY"];
-    if (!apiKey) throw new Error("GEMINI_API_KEY must be set");
+    const Groq = (await import("groq-sdk")).default;
+    const apiKey = process.env["GROQ_API_KEY"];
+    if (!apiKey) throw new Error("GROQ_API_KEY must be set");
 
-    const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({
+    const groq = new Groq({ apiKey });
+
+    const completion = await groq.chat.completions.create({
       model: this.model,
-      systemInstruction: systemPrompt,
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userMessage },
+      ],
+      temperature: 0,
     });
 
-    const result = await model.generateContent(userMessage);
-    return result.response.text();
+    return completion.choices[0]?.message?.content ?? "";
   }
 }
 
-// ── System prompts ────────────────────────────────────────────
+// ── System prompts ─────────────────────────────────────────────
 
 const PARSE_COMMAND_PROMPT = `\
 You are Ada, an autonomous stablecoin yield agent on Celo.
@@ -63,36 +68,36 @@ If the intent is unclear or not related to the agent's capabilities, use type "u
 const EXPLAIN_RUN_PROMPT = `\
 You are Ada, an autonomous stablecoin yield agent on Celo.
 Explain what happened in this agent run to a non-technical user.
-Write 2–3 plain sentences. Be specific about amounts, venues, and chains.
+Write 2 to 3 plain sentences. Be specific about amounts, venues, and chains.
 Do not use jargon like "basis points" — convert to percentages instead.
 Do not mention tx hashes or block numbers unless summarising them.
 If the run failed, explain why in plain language.`;
 
-// ── JSON extraction ───────────────────────────────────────────
+// ── JSON extraction ────────────────────────────────────────────
 
 function extractJson(text: string): string {
-  // Strip markdown code fences if Gemini wraps the output.
+  // Strip markdown code fences if the model wraps the output.
   const fenced = text.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
   if (fenced?.[1]) return fenced[1].trim();
   return text.trim();
 }
 
-// ── parseCommand ──────────────────────────────────────────────
+// ── parseCommand ───────────────────────────────────────────────
 
 /**
  * Parses a natural-language user message into a structured AgentCommand.
  *
- * Falls back to `{ type: "unknown", raw: text }` if Gemini returns
+ * Falls back to `{ type: "unknown", raw: text }` if the model returns
  * invalid JSON or an unrecognised command shape.
  *
  * @param text           Raw user message.
- * @param walletAddress  Used for logging / context; not sent to Gemini.
- * @param client         Injectable GeminiClient — defaults to the real SDK.
+ * @param walletAddress  Used for logging / context; not sent to the LLM.
+ * @param client         Injectable LLMClient — defaults to the Groq SDK.
  */
 export async function parseCommand(
   text: string,
   walletAddress: string,
-  client: GeminiClient = new GeminiSdkClient(),
+  client: LLMClient = new GroqSdkClient(),
 ): Promise<AgentCommand> {
   // Hard-coded shortcuts that don't need an LLM round-trip.
   const lower = text.trim().toLowerCase();
@@ -116,7 +121,7 @@ export async function parseCommand(
   }
 }
 
-// ── composeExplanation ────────────────────────────────────────
+// ── composeExplanation ─────────────────────────────────────────
 
 interface RunSummary {
   mode: string;
@@ -150,20 +155,18 @@ function summariseRun(run: Run): RunSummary {
  * Returns a plain-English explanation of a completed or failed run.
  *
  * @param run    The Run record to explain.
- * @param client Injectable GeminiClient.
+ * @param client Injectable LLMClient — defaults to the Groq SDK.
  */
 export async function composeExplanation(
   run: Run,
-  client: GeminiClient = new GeminiSdkClient(),
+  client: LLMClient = new GroqSdkClient(),
 ): Promise<string> {
   const summary = summariseRun(run);
-
   const userMessage = `Run details:\n${JSON.stringify(summary, null, 2)}`;
 
   try {
     return await client.chat(EXPLAIN_RUN_PROMPT, userMessage);
   } catch {
-    // Fallback to a template explanation when Gemini is unavailable.
     if (run.status === "completed") {
       return `Your rebalance completed successfully with ${summary.tx_count} on-chain step(s).`;
     }

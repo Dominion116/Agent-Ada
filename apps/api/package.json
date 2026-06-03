@@ -12,7 +12,7 @@
   },
   "dependencies": {
     "@ada/shared": "1.0.0",
-    "@google/generative-ai": "^0.24.1",
+    "groq-sdk": "^0.15.0",
     "@lifi/sdk": "^3.16.3",
     "@supabase/supabase-js": "^2.106.2",
     "commander": "^4.1.1",
