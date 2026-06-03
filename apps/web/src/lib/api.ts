@@ -1,6 +1,7 @@
 import type {
   Policy,
   PolicyUpdate,
+  Quote,
   Run,
   YieldData,
   Route,
@@ -113,6 +114,12 @@ export const api = {
     request<{ balances: { asset: string; raw: string; decimals: number; formatted: string }[] }>(
       "/api/agent/balance",
     ),
+
+  quotes: () =>
+    request<{ quotes: Quote[] }>("/api/agent/quotes"),
+
+  rejectQuote: (quoteId: string) =>
+    request<{ ok: boolean }>(`/api/agent/quotes/${quoteId}`, { method: "DELETE" }),
 
   quote: (amount: string, asset: "cUSD" | "USDC" = "USDC") =>
     request<{ quoteId: string; route: Route; approvalToken: string; expiresAt: string }>(

@@ -9,6 +9,15 @@ import { api } from "@/lib/api";
  * accept an `enabled` flag so they pause until the user has signed in.
  */
 
+export function useQuotes(enabled: boolean) {
+  const { data, error, isLoading, mutate } = useSWR(
+    enabled ? "quotes" : null,
+    () => api.quotes(),
+    { refreshInterval: 15_000 },
+  );
+  return { quotes: data?.quotes ?? [], error, isLoading, mutate };
+}
+
 export function useYields() {
   const { data, error, isLoading, mutate } = useSWR("yields", () => api.yields());
   return { yields: data?.yields ?? [], cachedAt: data?.cachedAt, error, isLoading, mutate };
