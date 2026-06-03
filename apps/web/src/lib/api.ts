@@ -7,6 +7,7 @@ import type {
   Route,
   ChatMessage,
 } from "@ada/shared";
+import { mockApi } from "@/lib/mocks";
 
 const API_BASE = process.env["NEXT_PUBLIC_API_BASE_URL"] ?? "http://localhost:4000";
 
@@ -106,7 +107,7 @@ export async function verifySignature(
 
 // ── Typed endpoint helpers (used by SWR hooks) ───────────────
 
-export const api = {
+const realApi = {
   yields: () =>
     request<{ yields: YieldData[]; cachedAt: string }>("/api/agent/yields", { auth: false }),
 
@@ -165,3 +166,12 @@ export const api = {
       chains: string[];
     }>("/api/agent/profile", { auth: false }),
 };
+
+/** Shape of the typed endpoint client, shared by the real and mock backends. */
+export type ApiClient = typeof realApi;
+
+// Flip on with NEXT_PUBLIC_USE_MOCKS=true to render the dashboard from fixtures
+// (src/lib/mocks.ts) with no backend running. Defaults to the real API.
+const USE_MOCKS = process.env["NEXT_PUBLIC_USE_MOCKS"] === "true";
+
+export const api: ApiClient = USE_MOCKS ? mockApi : realApi;
