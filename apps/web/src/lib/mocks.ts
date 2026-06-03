@@ -242,6 +242,71 @@ const CHAT: ChatMessage[] = [
   },
 ];
 
+// Intent-aware canned chat replies. Rebalance-style prompts return a payload
+// carrying a route so the inline QuoteCard path is demonstrable with mocks on.
+function chatReply(message: string): { response: string; command: unknown; payload: unknown } {
+  const m = message.toLowerCase();
+
+  if (/yield|apr|rate/.test(m)) {
+    return {
+      response:
+        "The strongest right now is Aave V3 on Base at 6.40% for USDC. Your Moola position on Celo is at 4.82%, so a move could add about 1.58% after fees.",
+      command: { type: "check_yields" },
+      payload: null,
+    };
+  }
+
+  if (/balance|holding|how much/.test(m)) {
+    return {
+      response: "You are holding 12,500.00 USDC and 3,200.00 cUSD on Celo.",
+      command: { type: "check_balance" },
+      payload: null,
+    };
+  }
+
+  if (/rebalance|move|save|put.*work/.test(m)) {
+    return {
+      response:
+        "I found a move that passes your policy: shift your USDC from Moola on Celo to Aave V3 on Base for about 1.58% more after fees. Review and approve below.",
+      command: { type: "rebalance", amount: "all" },
+      payload: {
+        kind: "quote",
+        expiresAt: iso(mins(5)),
+        route: {
+          source_chain: "celo",
+          source_venue: "moola",
+          dest_chain: "base",
+          dest_venue: "aave-v3",
+          asset: "USDC",
+          amount_in: "12500000000",
+          amount_out: "12480000000",
+          route_cost_bps: 35,
+          net_gain_bps: 158,
+          payback_days: 9,
+          estimated_time_seconds: 95,
+          lifi_route: null,
+        },
+      },
+    };
+  }
+
+  if (/last run|what happened|explain/.test(m)) {
+    return {
+      response:
+        "Your last live run completed about 2 hours ago. It moved 12,500 USDC from Moola on Celo to Aave V3 on Base across three confirmed transactions.",
+      command: { type: "explain_last_run" },
+      payload: null,
+    };
+  }
+
+  return {
+    response:
+      "I can check yields, report your balance, propose a rebalance, or explain your last run. Try one of the suggestions below.",
+    command: { type: "unknown" },
+    payload: null,
+  };
+}
+
 // ── Mock API surface ───────────────────────────────────────────
 
 export const mockApi: ApiClient = {
@@ -292,12 +357,7 @@ export const mockApi: ApiClient = {
     return delay({ policy: POLICY });
   },
 
-  sendChat: (message: string) =>
-    delay({
-      response: `Mock reply to: "${message}". With mocks enabled, Ada echoes your message instead of calling the model.`,
-      command: { type: "unknown" },
-      payload: null,
-    }),
+  sendChat: (message: string) => delay(chatReply(message), 700),
 
   chatHistory: () => delay({ messages: CHAT }),
 
