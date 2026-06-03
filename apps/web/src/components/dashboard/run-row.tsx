@@ -68,9 +68,11 @@ export function RunRow({ run }: { run: Run }) {
         </div>
 
         {/* Time + duration */}
-        <div className="hidden shrink-0 text-right sm:block">
-          <p className="text-sm text-muted-foreground">{timeAgo(run.started_at)}</p>
-          <p className="text-xs text-muted-foreground">{duration ? `Took ${duration}` : "In progress"}</p>
+        <div className="shrink-0 text-right">
+          <p className="text-xs text-muted-foreground sm:text-sm">{timeAgo(run.started_at)}</p>
+          <p className="hidden text-xs text-muted-foreground sm:block">
+            {duration ? `Took ${duration}` : "In progress"}
+          </p>
         </div>
 
         <ChevronDown

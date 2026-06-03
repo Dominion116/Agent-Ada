@@ -71,7 +71,7 @@ export default function ChatPage() {
     <div className="space-y-6">
       <PageHeader eyebrow="Chat" title="Talk to Ada" />
 
-      <div className="flex h-[68vh] min-h-[440px] flex-col">
+      <div className="flex h-[calc(100dvh-13rem)] min-h-[420px] flex-col">
         {/* Thread */}
         <div className="flex-1 overflow-hidden">
           {showEmptyHint ? (
@@ -96,7 +96,7 @@ export default function ChatPage() {
                 type="button"
                 onClick={() => void send(q)}
                 disabled={sending}
-                className="rounded-full border px-3 py-1.5 text-xs font-semibold text-muted-foreground transition-colors hover:bg-accent hover:text-foreground disabled:opacity-50"
+                className="rounded-full border px-3 py-2 text-xs font-semibold text-muted-foreground transition-colors hover:bg-accent hover:text-foreground disabled:opacity-50"
               >
                 {q}
               </button>
@@ -118,7 +118,7 @@ export default function ChatPage() {
               disabled={sending || input.trim() === ""}
               aria-label="Send message"
               className={cn(
-                "flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground transition-opacity",
+                "flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground transition-opacity",
                 (sending || input.trim() === "") && "opacity-50",
               )}
             >

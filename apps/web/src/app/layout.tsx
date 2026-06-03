@@ -27,9 +27,22 @@ export const viewport: Viewport = {
   minimumScale: 1,
 };
 
+// Applies the saved (or system) theme before paint to avoid a flash of the
+// wrong theme. Reads the same `ada-theme` key the ThemeToggle writes.
+const themeScript = `
+try {
+  var stored = localStorage.getItem('ada-theme');
+  var dark = stored ? stored === 'dark' : window.matchMedia('(prefers-color-scheme: dark)').matches;
+  if (dark) document.documentElement.classList.add('dark');
+} catch (e) {}
+`;
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" suppressHydrationWarning className={jakarta.variable}>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+      </head>
       <body className="min-h-screen font-sans antialiased">
         <Providers>{children}</Providers>
       </body>

@@ -13,8 +13,10 @@
   --brand-ember: #fd5200;
   --brand-white: #ffffff;
 
-  /* Fluid display scale used by hero and section headlines. */
-  --display-size: clamp(3.5rem, 12vw, 14rem);
+  /* Fluid display scale used by hero and section headlines. The lower bound is
+     small enough that long single words (e.g. STABLECOIN) do not overflow at
+     320px, while 12vw still drives large sizes on wide screens. */
+  --display-size: clamp(2.75rem, 12vw, 14rem);
   --eyebrow-tracking: 0.2em;
 
   --radius: 0.625rem;

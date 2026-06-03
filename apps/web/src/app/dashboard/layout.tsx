@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { NetworkBadge } from "@/components/dashboard/network-badge";
 import { truncateAddress, cn } from "@/lib/utils";
 
@@ -144,14 +145,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           <span className="text-base font-extrabold uppercase tracking-[0.25em] md:hidden">
             Ada
           </span>
-          <div className="ml-auto flex items-center gap-3">
+          <div className="ml-auto flex items-center gap-1.5 sm:gap-3">
             <NetworkBadge chain="celo" className="hidden sm:inline-flex" />
             {walletAddress ? (
-              <span className="rounded-md bg-secondary px-3 py-1.5 text-sm font-medium tabular-nums">
+              <span className="rounded-md bg-secondary px-2.5 py-1.5 text-xs font-medium tabular-nums sm:px-3 sm:text-sm">
                 {truncateAddress(walletAddress)}
               </span>
             ) : null}
-            <Button variant="outline" size="sm" onClick={handleSignOut}>
+            <ThemeToggle />
+            <Button variant="outline" size="sm" onClick={handleSignOut} className="h-10">
               <LogOut className="h-4 w-4" />
               <span className="hidden sm:inline">Disconnect</span>
             </Button>
