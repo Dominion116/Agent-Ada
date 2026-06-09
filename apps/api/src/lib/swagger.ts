@@ -10,7 +10,7 @@ export const swaggerSpec = swaggerJsdoc({
         "Autonomous stablecoin treasury agent on Celo. " +
         "Yields and execute endpoints are metered via x402.",
     },
-    servers: [{ url: process.env["NEXT_PUBLIC_API_BASE_URL"] ?? "http://localhost:4000" }],
+    servers: [{ url: process.env["API_BASE_URL"] ?? "http://localhost:4000" }],
     components: {
       securitySchemes: {
         BearerAuth: { type: "http", scheme: "bearer", bearerFormat: "JWT" },
