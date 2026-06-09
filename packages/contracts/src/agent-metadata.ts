@@ -78,9 +78,13 @@ export function buildAgentProfile(overrides: Partial<AgentProfile> = {}): AgentP
         description: "Execute an approved rebalance on behalf of a wallet.",
       },
     ],
-    apiBaseUrl: process.env["NEXT_PUBLIC_API_BASE_URL"] ?? "",
-    agentscanUrl: null,
-    scan8004Url: null,
+    apiBaseUrl: process.env["API_BASE_URL"] ?? process.env["NEXT_PUBLIC_API_BASE_URL"] ?? "",
+    agentscanUrl: process.env["AGENT_ERC8004_ID"]
+      ? `https://agentscan.xyz/agents/${process.env["AGENT_ERC8004_ID"]}`
+      : null,
+    scan8004Url: process.env["AGENT_ERC8004_ID"]
+      ? `https://8004scan.xyz/agents/${process.env["AGENT_ERC8004_ID"]}`
+      : null,
     ...overrides,
   };
 }
