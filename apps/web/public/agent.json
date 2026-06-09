@@ -1,0 +1,17 @@
+{
+  "type": "Agent",
+  "name": "Agent Ada",
+  "description": "Autonomous stablecoin treasury agent on Celo. Monitors yield across Moola and Aave V3, prices cross-chain moves via LI.FI, and rebalances under user-defined policies with explicit wallet approval. Accessible via Telegram, web dashboard, or x402 pay-per-call API.",
+  "image": "https://agent-ada-web.vercel.app/ada-icon.png",
+  "endpoints": [
+    {
+      "type": "a2a",
+      "url": "https://agent-ada-web.vercel.app/"
+    },
+    {
+      "type": "wallet",
+      "address": "0x70f77a5c36ebd667360f6021bf4a95d274b3530e"
+    }
+  ],
+  "supportedTrust": ["reputation"]
+}
