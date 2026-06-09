@@ -12,7 +12,7 @@ CREATE EXTENSION IF NOT EXISTS "pg_net";     -- optional: async HTTP from DB
 -- ============================================================
 
 -- ── users ────────────────────────────────────────────────────
-CREATE TABLE users (
+CREATE TABLE IF NOT EXISTS users (
   id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   wallet_address  TEXT NOT NULL UNIQUE
                     CHECK (wallet_address ~ '^0x[0-9a-fA-F]{40}$'),
@@ -21,7 +21,7 @@ CREATE TABLE users (
 );
 
 -- ── policies ─────────────────────────────────────────────────
-CREATE TABLE policies (
+CREATE TABLE IF NOT EXISTS policies (
   id                   UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   wallet_address       TEXT NOT NULL
                          CHECK (wallet_address ~ '^0x[0-9a-fA-F]{40}$'),
@@ -36,7 +36,7 @@ CREATE TABLE policies (
 );
 
 -- ── positions ────────────────────────────────────────────────
-CREATE TABLE positions (
+CREATE TABLE IF NOT EXISTS positions (
   id               UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   wallet_address   TEXT NOT NULL
                      CHECK (wallet_address ~ '^0x[0-9a-fA-F]{40}$'),
@@ -50,7 +50,7 @@ CREATE TABLE positions (
 );
 
 -- ── quotes ───────────────────────────────────────────────────
-CREATE TABLE quotes (
+CREATE TABLE IF NOT EXISTS quotes (
   id               UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   wallet_address   TEXT NOT NULL
                      CHECK (wallet_address ~ '^0x[0-9a-fA-F]{40}$'),
@@ -70,7 +70,7 @@ CREATE TABLE quotes (
 );
 
 -- ── runs ─────────────────────────────────────────────────────
-CREATE TABLE runs (
+CREATE TABLE IF NOT EXISTS runs (
   id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   wallet_address  TEXT NOT NULL
                     CHECK (wallet_address ~ '^0x[0-9a-fA-F]{40}$'),
@@ -89,7 +89,7 @@ CREATE TABLE runs (
 );
 
 -- ── reports ──────────────────────────────────────────────────
-CREATE TABLE reports (
+CREATE TABLE IF NOT EXISTS reports (
   id             UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   wallet_address TEXT NOT NULL
                    CHECK (wallet_address ~ '^0x[0-9a-fA-F]{40}$'),
@@ -99,7 +99,7 @@ CREATE TABLE reports (
 );
 
 -- ── chats ────────────────────────────────────────────────────
-CREATE TABLE chats (
+CREATE TABLE IF NOT EXISTS chats (
   id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   wallet_address  TEXT NOT NULL
                     CHECK (wallet_address ~ '^0x[0-9a-fA-F]{40}$'),
@@ -112,7 +112,7 @@ CREATE TABLE chats (
 -- ── telegram_configs ─────────────────────────────────────────
 -- bot_token_ciphertext is AES-256-GCM encrypted by the backend.
 -- It is never decrypted inside the DB; the backend owns the key.
-CREATE TABLE telegram_configs (
+CREATE TABLE IF NOT EXISTS telegram_configs (
   id                    UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   wallet_address        TEXT NOT NULL UNIQUE
                           CHECK (wallet_address ~ '^0x[0-9a-fA-F]{40}$'),
@@ -123,7 +123,7 @@ CREATE TABLE telegram_configs (
 );
 
 -- ── api_calls ────────────────────────────────────────────────
-CREATE TABLE api_calls (
+CREATE TABLE IF NOT EXISTS api_calls (
   id               UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   caller_agent_id  TEXT,
   endpoint         TEXT NOT NULL,
@@ -136,14 +136,14 @@ CREATE TABLE api_calls (
 -- INDEXES
 -- ============================================================
 
-CREATE INDEX idx_policies_wallet     ON policies (wallet_address, version DESC);
-CREATE INDEX idx_positions_wallet    ON positions (wallet_address);
-CREATE INDEX idx_quotes_wallet       ON quotes (wallet_address, expires_at DESC);
-CREATE INDEX idx_runs_wallet         ON runs (wallet_address, started_at DESC);
-CREATE INDEX idx_runs_quote          ON runs (quote_id);
-CREATE INDEX idx_reports_wallet      ON reports (wallet_address, generated_at DESC);
-CREATE INDEX idx_chats_wallet        ON chats (wallet_address, created_at ASC);
-CREATE INDEX idx_api_calls_created   ON api_calls (created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_policies_wallet     ON policies (wallet_address, version DESC);
+CREATE INDEX IF NOT EXISTS idx_positions_wallet    ON positions (wallet_address);
+CREATE INDEX IF NOT EXISTS idx_quotes_wallet       ON quotes (wallet_address, expires_at DESC);
+CREATE INDEX IF NOT EXISTS idx_runs_wallet         ON runs (wallet_address, started_at DESC);
+CREATE INDEX IF NOT EXISTS idx_runs_quote          ON runs (quote_id);
+CREATE INDEX IF NOT EXISTS idx_reports_wallet      ON reports (wallet_address, generated_at DESC);
+CREATE INDEX IF NOT EXISTS idx_chats_wallet        ON chats (wallet_address, created_at ASC);
+CREATE INDEX IF NOT EXISTS idx_api_calls_created   ON api_calls (created_at DESC);
 
 -- ============================================================
 -- ROW LEVEL SECURITY
@@ -163,6 +163,15 @@ ALTER TABLE reports            ENABLE ROW LEVEL SECURITY;
 ALTER TABLE chats              ENABLE ROW LEVEL SECURITY;
 ALTER TABLE telegram_configs   ENABLE ROW LEVEL SECURITY;
 -- api_calls is not wallet-scoped so RLS is intentionally omitted
+
+DROP POLICY IF EXISTS "users_wallet_scope"            ON users;
+DROP POLICY IF EXISTS "policies_wallet_scope"         ON policies;
+DROP POLICY IF EXISTS "positions_wallet_scope"        ON positions;
+DROP POLICY IF EXISTS "quotes_wallet_scope"           ON quotes;
+DROP POLICY IF EXISTS "runs_wallet_scope"             ON runs;
+DROP POLICY IF EXISTS "reports_wallet_scope"          ON reports;
+DROP POLICY IF EXISTS "chats_wallet_scope"            ON chats;
+DROP POLICY IF EXISTS "telegram_configs_wallet_scope" ON telegram_configs;
 
 CREATE POLICY "users_wallet_scope"            ON users
   USING (wallet_address = current_setting('app.wallet_address', true));
