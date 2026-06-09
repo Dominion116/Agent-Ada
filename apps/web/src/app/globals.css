@@ -130,7 +130,7 @@
     border: none;
     border-top: 1px solid currentColor;
     opacity: 0.6;
-    margin-block: 2vw;
+    margin-block: clamp(0.5rem, 1.5vh, 1.25rem);
   }
 
   /* Oversized uppercase display headline on the fluid clamp scale. */

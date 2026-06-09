@@ -16,9 +16,8 @@ export interface FlowSectionProps {
 }
 
 /**
- * A single full-bleed panel in the story scroll. Each section pins and the next
- * one rotates up into place as the user scrolls. Background and text colors are
- * passed via `style` so callers control the panel palette.
+ * A single full-bleed panel in the story scroll. CSS sticky keeps it pinned
+ * without GSAP touching the DOM, avoiding React removeChild conflicts.
  */
 export const FlowSection: React.FC<FlowSectionProps> = ({
   className,
@@ -29,12 +28,12 @@ export const FlowSection: React.FC<FlowSectionProps> = ({
   <section
     data-flow-section
     aria-label={ariaLabel}
-    className={cn("relative min-h-screen w-full overflow-hidden", className)}
+    className={cn("sticky top-0 h-screen w-full overflow-hidden", className)}
   >
     <div
       data-flow-inner
       className={cn(
-        "flow-art-container relative flex min-h-screen w-full flex-col justify-between gap-6 px-[4vw] pt-[clamp(2rem,8vw,4vw)] pb-[4vw]",
+        "flow-art-container relative flex h-full w-full flex-col justify-between gap-[clamp(0.5rem,1.5vh,1.25rem)] overflow-y-auto px-[4vw] pt-[clamp(1rem,3vh,2vw)] pb-[clamp(1rem,3vh,2vw)]",
         "will-change-transform",
       )}
       style={{ transformOrigin: "bottom left", ...style }}
@@ -53,8 +52,8 @@ export interface FlowArtProps {
 const childCount = (children: React.ReactNode) => React.Children.count(children);
 
 /**
- * Scroll-driven story container. Pins each FlowSection and scrubs the next panel
- * into view. Honors prefers-reduced-motion by rendering a plain stacked layout.
+ * Scroll-driven story container. Sections stack via CSS sticky; GSAP only
+ * drives the rotation tween — no DOM moves, no React removeChild conflicts.
  */
 const FlowArt: React.FC<FlowArtProps> = ({
   children,
@@ -81,8 +80,6 @@ const FlowArt: React.FC<FlowArtProps> = ({
       );
       if (sections.length === 0) return;
 
-      const triggers: ScrollTrigger[] = [];
-
       sections.forEach((section, i) => {
         gsap.set(section, { zIndex: i + 1 });
 
@@ -91,7 +88,7 @@ const FlowArt: React.FC<FlowArtProps> = ({
 
         if (i > 0) {
           gsap.set(inner, { rotation: 30, transformOrigin: "bottom left" });
-          const tween = gsap.to(inner, {
+          gsap.to(inner, {
             rotation: 0,
             ease: "none",
             scrollTrigger: {
@@ -101,27 +98,10 @@ const FlowArt: React.FC<FlowArtProps> = ({
               scrub: true,
             },
           });
-          if (tween.scrollTrigger) triggers.push(tween.scrollTrigger);
-        }
-
-        if (i < sections.length - 1) {
-          triggers.push(
-            ScrollTrigger.create({
-              trigger: section,
-              start: "bottom bottom",
-              end: "bottom top",
-              pin: true,
-              pinSpacing: false,
-            }),
-          );
         }
       });
 
       ScrollTrigger.refresh();
-
-      return () => {
-        triggers.forEach((t) => t.kill());
-      };
     },
     { scope: containerRef, dependencies: [childCount(children), reducedMotion] },
   );
@@ -130,7 +110,7 @@ const FlowArt: React.FC<FlowArtProps> = ({
     <main
       ref={containerRef}
       aria-label={ariaLabel}
-      className={cn("w-full overflow-x-hidden", className)}
+      className={cn("w-full", className)}
     >
       {children}
     </main>

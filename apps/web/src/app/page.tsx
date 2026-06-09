@@ -13,7 +13,7 @@ export default function HomePage() {
   return (
     <>
       <header
-        className="relative flex min-h-screen w-full flex-col justify-between overflow-hidden px-[4vw] pt-[4vw] pb-[6vw]"
+        className="relative flex h-screen w-full flex-col justify-between overflow-hidden px-[4vw] pt-[4vw] pb-[6vw]"
         style={{ backgroundColor: "var(--brand-ink)", color: "var(--brand-white)" }}
       >
         <div className="flex items-center justify-between">
