@@ -7,6 +7,7 @@ import { signApprovalToken, verifyApprovalToken } from "../lib/jwt.js";
 import { getYields } from "../agent/yield-discovery.js";
 import { buildQuote } from "../agent/loop.js";
 import { executeRebalance, type RunRepository } from "../agent/execution-engine.js";
+import { createCeloTransactionSender, feeCurrencyFromEnv } from "../onchain/transaction-sender.js";
 import { parseCommand, composeExplanation } from "../agent/nl-parser.js";
 import { sendTelegramNotification } from "../telegram/notify.js";
 import { handleTelegramWebhook } from "../telegram/handler.js";
@@ -312,6 +313,7 @@ router.post("/agent/execute", requireAuth, async (req, res, next) => {
       mode: "live",
       repo: dbRepo(),
       generateId: randomUUID,
+      sender: createCeloTransactionSender({ feeCurrency: feeCurrencyFromEnv() }),
     });
 
     const event = run.status === "completed" ? "executed" : "error";
