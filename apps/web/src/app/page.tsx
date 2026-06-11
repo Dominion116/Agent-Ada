@@ -80,7 +80,7 @@ export default function HomePage() {
               npm CLI
             </a>
             <a
-              href="https://agentscan.xyz"
+              href="https://agentscan.info"
               className="underline-offset-4 hover:underline"
               target="_blank"
               rel="noreferrer"
@@ -88,7 +88,7 @@ export default function HomePage() {
               agentscan
             </a>
             <a
-              href="https://8004scan.xyz"
+              href="https://8004scan.io/agents/celo/9230"
               className="underline-offset-4 hover:underline"
               target="_blank"
               rel="noreferrer"

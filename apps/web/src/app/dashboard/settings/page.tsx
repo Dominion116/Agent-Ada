@@ -139,7 +139,7 @@ export default function SettingsPage() {
 
           <Row label="Explorers">
             <a
-              href="https://agentscan.xyz"
+              href={profile?.agentscanUrl ?? "https://agentscan.info"}
               target="_blank"
               rel="noreferrer"
               className="inline-flex items-center gap-1.5 text-sm font-semibold text-primary underline-offset-4 hover:underline"
@@ -147,7 +147,7 @@ export default function SettingsPage() {
               agentscan <ExternalLink className="h-3.5 w-3.5" />
             </a>
             <a
-              href="https://8004scan.xyz"
+              href={profile?.scan8004Url ?? "https://8004scan.io"}
               target="_blank"
               rel="noreferrer"
               className="ml-3 inline-flex items-center gap-1.5 text-sm font-semibold text-primary underline-offset-4 hover:underline"

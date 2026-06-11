@@ -370,6 +370,8 @@ export const mockApi: ApiClient = {
       erc8004RegistryId: "8004:celo:42",
       selfAgentId: "self:agent:ada-001",
       chains: ["celo", "base", "polygon", "arbitrum", "optimism"],
+      agentscanUrl: null,
+      scan8004Url: "https://8004scan.io/agents/celo/42",
     }),
 
   deleteAllData: () => delay({ ok: true }, 400),

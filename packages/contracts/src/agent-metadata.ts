@@ -79,11 +79,11 @@ export function buildAgentProfile(overrides: Partial<AgentProfile> = {}): AgentP
       },
     ],
     apiBaseUrl: process.env["API_BASE_URL"] ?? process.env["NEXT_PUBLIC_API_BASE_URL"] ?? "",
-    agentscanUrl: process.env["AGENT_ERC8004_ID"]
-      ? `https://agentscan.xyz/agents/${process.env["AGENT_ERC8004_ID"]}`
-      : null,
+    // agentscan.info assigns its own opaque per-agent IDs we can't derive from
+    // the registry tokenId, so this stays null until the agent is indexed there.
+    agentscanUrl: null,
     scan8004Url: process.env["AGENT_ERC8004_ID"]
-      ? `https://8004scan.xyz/agents/${process.env["AGENT_ERC8004_ID"]}`
+      ? `https://8004scan.io/agents/celo/${process.env["AGENT_ERC8004_ID"]}`
       : null,
     ...overrides,
   };

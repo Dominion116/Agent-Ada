@@ -164,6 +164,8 @@ const realApi = {
       erc8004RegistryId: string | null;
       selfAgentId: string | null;
       chains: string[];
+      agentscanUrl: string | null;
+      scan8004Url: string | null;
     }>("/api/agent/profile", { auth: false }),
 
   deleteAllData: () => request<{ ok: boolean }>("/api/agent/data", { method: "DELETE" }),
