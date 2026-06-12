@@ -11,8 +11,9 @@ import { createCeloTransactionSender, feeCurrencyFromEnv } from "../onchain/tran
 import { parseCommand, composeExplanation } from "../agent/nl-parser.js";
 import { sendTelegramNotification } from "../telegram/notify.js";
 import { handleTelegramWebhook } from "../telegram/handler.js";
-import { buildAgentProfile } from "@ada/contracts";
+import { buildAgentProfile, X402_PRICES } from "@ada/contracts";
 import { PolicyUpdateSchema, TelegramConfigInputSchema, ChatInputSchema, QuoteRequestSchema } from "@ada/shared";
+import { createX402Middleware } from "../middleware/x402.js";
 import { logger } from "../lib/logger.js";
 import type { Chain, Venue, Asset, Json, Run } from "@ada/shared";
 
@@ -102,13 +103,23 @@ router.get("/agent/profile", (_req, res) => {
  *                       supply_rate_bps: { type: integer, example: 234 }
  *                       utilisation_bps: { type: integer, example: 7657 }
  *                 cachedAt: { type: string, format: date-time }
+ *       402:
+ *         description: Payment required (x402). Response body lists accepted payment methods.
  */
-router.get("/agent/yields", async (_req, res, next) => {
-  try {
-    const yields = await getYields();
-    res.json({ yields, cachedAt: new Date().toISOString() });
-  } catch (err) { next(err); }
-});
+router.get(
+  "/agent/yields",
+  createX402Middleware({
+    price: X402_PRICES.yields,
+    description: "Current cached yield data across all supported venues and chains.",
+    endpoint: "GET /api/agent/yields",
+  }),
+  async (_req, res, next) => {
+    try {
+      const yields = await getYields();
+      res.json({ yields, cachedAt: new Date().toISOString() });
+    } catch (err) { next(err); }
+  },
+);
 
 /**
  * @swagger
@@ -270,58 +281,69 @@ router.post("/agent/quote", requireAuth, async (req, res, next) => {
  *         description: Quote not found
  *       410:
  *         description: Quote expired
+ *       402:
+ *         description: Payment required (x402). Response body lists accepted payment methods.
  */
-router.post("/agent/execute", requireAuth, async (req, res, next) => {
-  try {
-    const { approvalToken } = req.body as { approvalToken?: string };
-    if (!approvalToken) { res.status(400).json({ error: "approvalToken required" }); return; }
+router.post(
+  "/agent/execute",
+  createX402Middleware({
+    price: X402_PRICES.execute,
+    description: "Execute an approved rebalance on behalf of a wallet.",
+    endpoint: "POST /api/agent/execute",
+  }),
+  requireAuth,
+  async (req, res, next) => {
+    try {
+      const { approvalToken } = req.body as { approvalToken?: string };
+      if (!approvalToken) { res.status(400).json({ error: "approvalToken required" }); return; }
 
-    const { quoteId, walletAddress } = await verifyApprovalToken(approvalToken);
-    if (walletAddress !== req.walletAddress) { res.status(403).json({ error: "Token does not match session wallet" }); return; }
+      const { quoteId, walletAddress } = await verifyApprovalToken(approvalToken);
+      if (walletAddress !== req.walletAddress) { res.status(403).json({ error: "Token does not match session wallet" }); return; }
 
-    const db = getDb();
-    const { data: quote } = await db.from("quotes").select("*").eq("id", quoteId).maybeSingle();
-    if (!quote) { res.status(404).json({ error: "Quote not found or expired" }); return; }
-    if (new Date(quote.expires_at) < new Date()) { res.status(410).json({ error: "Quote expired" }); return; }
+      const db = getDb();
+      const { data: quote } = await db.from("quotes").select("*").eq("id", quoteId).maybeSingle();
+      if (!quote) { res.status(404).json({ error: "Quote not found or expired" }); return; }
+      if (new Date(quote.expires_at) < new Date()) { res.status(410).json({ error: "Quote expired" }); return; }
 
-    const policy = await getLatestPolicy(db, walletAddress);
-    if (!policy) { res.status(422).json({ error: "No policy configured" }); return; }
+      const policy = await getLatestPolicy(db, walletAddress);
+      if (!policy) { res.status(422).json({ error: "No policy configured" }); return; }
 
-    const [lastRun] = await getRuns(db, walletAddress, { limit: 1 });
+      const [lastRun] = await getRuns(db, walletAddress, { limit: 1 });
 
-    const route = {
-      source_chain: quote.source_chain as Chain,
-      source_venue: quote.source_venue as Venue,
-      dest_chain: quote.dest_chain as Chain,
-      dest_venue: quote.dest_venue as Venue,
-      asset: quote.asset as Asset,
-      amount_in: String(quote.amount),
-      amount_out: String(quote.amount * (1 - quote.route_cost_bps / 10000)),
-      route_cost_bps: quote.route_cost_bps,
-      net_gain_bps: quote.net_gain_bps,
-      payback_days: quote.payback_days,
-      estimated_time_seconds: 300,
-      lifi_route: null,
-    };
+      const route = {
+        source_chain: quote.source_chain as Chain,
+        source_venue: quote.source_venue as Venue,
+        dest_chain: quote.dest_chain as Chain,
+        dest_venue: quote.dest_venue as Venue,
+        asset: quote.asset as Asset,
+        amount_in: String(quote.amount),
+        amount_out: String(quote.amount * (1 - quote.route_cost_bps / 10000)),
+        route_cost_bps: quote.route_cost_bps,
+        net_gain_bps: quote.net_gain_bps,
+        payback_days: quote.payback_days,
+        estimated_time_seconds: 300,
+        lifi_route: null,
+      };
 
-    const run = await executeRebalance({
-      walletAddress: walletAddress as `0x${string}`,
-      route,
-      policy: { ...policy, allowed_chains: policy.allowed_chains as Chain[], allowed_venues: policy.allowed_venues as Venue[] },
-      lastRun: lastRun ? { completed_at: lastRun.completed_at } : null,
-      quoteId,
-      mode: "live",
-      repo: dbRepo(),
-      generateId: randomUUID,
-      sender: createCeloTransactionSender({ feeCurrency: feeCurrencyFromEnv() }),
-    });
+      const run = await executeRebalance({
+        walletAddress: walletAddress as `0x${string}`,
+        route,
+        policy: { ...policy, allowed_chains: policy.allowed_chains as Chain[], allowed_venues: policy.allowed_venues as Venue[] },
+        lastRun: lastRun ? { completed_at: lastRun.completed_at } : null,
+        quoteId,
+        mode: "live",
+        repo: dbRepo(),
+        generateId: randomUUID,
+        sender: createCeloTransactionSender({ feeCurrency: feeCurrencyFromEnv() }),
+      });
 
-    const event = run.status === "completed" ? "executed" : "error";
-    sendTelegramNotification(walletAddress, event, run).catch(() => {});
+      const event = run.status === "completed" ? "executed" : "error";
+      sendTelegramNotification(walletAddress, event, run).catch(() => {});
 
-    res.json({ run });
-  } catch (err) { next(err); }
-});
+      res.json({ run });
+    } catch (err) { next(err); }
+  },
+);
 
 /**
  * @swagger

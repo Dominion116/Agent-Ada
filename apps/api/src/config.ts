@@ -18,7 +18,11 @@ const EnvSchema = z.object({
   // Optional
   AGENT_CONFIG_CIPHER_KEY: z.string().optional(),
   TELEGRAM_WEBHOOK_SECRET: z.string().optional(),
+  // x402 payments (thirdweb hosted facilitator)
   X402_WALLET_ADDRESS: z.string().optional(),
+  THIRDWEB_SECRET_KEY: z.string().optional(),
+  X402_SERVER_WALLET_ADDRESS: z.string().optional(),
+  X402_NETWORK: z.string().default("eip155:42220"),
   AGENT_ERC8004_ID: z.string().optional(),
   AGENT_SELF_ID: z.string().optional(),
   SENTRY_DSN: z.string().url().optional(),

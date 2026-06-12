@@ -6,6 +6,8 @@
  * deployed URL of that endpoint so explorers can fetch this document.
  */
 
+import { CELO_MAINNET_NETWORK, CELO_USDC_ADDRESS, X402_PRICES } from "./x402-config.js";
+
 export interface AgentProfile {
   name: string;
   description: string;
@@ -41,6 +43,10 @@ export interface X402EndpointInfo {
   /** Amount in USDC, e.g. "0.001" */
   priceUsdc: string;
   description: string;
+  /** CAIP-2 chain id payment is settled on. */
+  network: string;
+  /** Token contract address payment is collected in. */
+  asset: `0x${string}`;
 }
 
 /** Default profile populated at startup; mutable fields are set after
@@ -68,14 +74,18 @@ export function buildAgentProfile(overrides: Partial<AgentProfile> = {}): AgentP
       {
         path: "/api/agent/yields",
         method: "GET",
-        priceUsdc: "0.001",
+        priceUsdc: X402_PRICES.yields.replace("$", ""),
         description: "Current cached yield data across all supported venues and chains.",
+        network: process.env["X402_NETWORK"] ?? CELO_MAINNET_NETWORK,
+        asset: CELO_USDC_ADDRESS,
       },
       {
         path: "/api/agent/execute",
         method: "POST",
-        priceUsdc: "0.10",
+        priceUsdc: X402_PRICES.execute.replace("$", ""),
         description: "Execute an approved rebalance on behalf of a wallet.",
+        network: process.env["X402_NETWORK"] ?? CELO_MAINNET_NETWORK,
+        asset: CELO_USDC_ADDRESS,
       },
     ],
     apiBaseUrl: process.env["API_BASE_URL"] ?? process.env["NEXT_PUBLIC_API_BASE_URL"] ?? "",

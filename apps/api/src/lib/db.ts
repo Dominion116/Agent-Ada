@@ -120,3 +120,11 @@ export async function getRuns(
   if (error) throw new Error(`getRuns: ${error.message}`);
   return data ?? [];
 }
+
+export async function recordApiCall(
+  db: Db,
+  call: Database["public"]["Tables"]["api_calls"]["Insert"],
+) {
+  const { error } = await db.from("api_calls").insert(call);
+  if (error) throw new Error(`recordApiCall: ${error.message}`);
+}

@@ -246,6 +246,9 @@ The following require real external services and are covered by manual integrati
 | `OPTIMISM_RPC_URL` | No | Defaults to `https://mainnet.optimism.io`. |
 | `TELEGRAM_WEBHOOK_SECRET` | Yes (for Telegram) | Validates inbound Telegram webhook requests. |
 | `X402_WALLET_ADDRESS` | Yes (for paid API) | Wallet address that receives x402 fee payments. |
+| `THIRDWEB_SECRET_KEY` | Yes (for paid API) | thirdweb Secret Key, used to call the hosted x402 facilitator (`api.thirdweb.com/v1/payments/x402`). |
+| `X402_SERVER_WALLET_ADDRESS` | Yes (for paid API) | thirdweb server wallet address that settles x402 payments on-chain. |
+| `X402_NETWORK` | No | CAIP-2 chain id for x402 settlement. Defaults to `eip155:42220` (Celo mainnet). |
 | `AGENT_ERC8004_ID` | Set after Phase 2 | Registry ID assigned during ERC-8004 registration. |
 | `SENTRY_DSN` | No | Sentry error tracking DSN. |
 | `LOG_LEVEL` | No | Pino log level. Defaults to `info`. |
