@@ -40,7 +40,7 @@ export type AgentCapability =
 export interface X402EndpointInfo {
   path: string;
   method: "GET" | "POST";
-  /** Amount in USDC, e.g. "0.001" */
+  /** Amount in cUSD, e.g. "0.001" */
   priceUsdc: string;
   description: string;
   /** CAIP-2 chain id payment is settled on. */
@@ -77,7 +77,7 @@ export function buildAgentProfile(overrides: Partial<AgentProfile> = {}): AgentP
         priceUsdc: X402_PRICES.yields.replace("$", ""),
         description: "Current cached yield data across all supported venues and chains.",
         network: process.env["X402_NETWORK"] ?? CELO_MAINNET_NETWORK,
-        asset: CELO_USDC_ADDRESS,
+        asset: CELO_CUSD_ADDRESS,
       },
       {
         path: "/api/agent/execute",
@@ -85,7 +85,7 @@ export function buildAgentProfile(overrides: Partial<AgentProfile> = {}): AgentP
         priceUsdc: X402_PRICES.execute.replace("$", ""),
         description: "Execute an approved rebalance on behalf of a wallet.",
         network: process.env["X402_NETWORK"] ?? CELO_MAINNET_NETWORK,
-        asset: CELO_USDC_ADDRESS,
+        asset: CELO_CUSD_ADDRESS,
       },
     ],
     apiBaseUrl: process.env["API_BASE_URL"] ?? process.env["NEXT_PUBLIC_API_BASE_URL"] ?? "",
