@@ -113,3 +113,14 @@ export function decodePaymentHeader(header: string): PaymentPayload {
 export function encodeSettlementHeader(receipt: SettleResponse): string {
   return Buffer.from(JSON.stringify(receipt), "utf-8").toString("base64");
 }
+
+/** Client-side counterpart to {@link decodePaymentHeader}. */
+export function encodePaymentHeader(payload: PaymentPayload): string {
+  return Buffer.from(JSON.stringify(payload), "utf-8").toString("base64");
+}
+
+/** Client-side counterpart to {@link encodeSettlementHeader}. */
+export function decodeSettlementHeader(header: string): SettleResponse {
+  const json = Buffer.from(header, "base64").toString("utf-8");
+  return SettleResponseSchema.parse(JSON.parse(json));
+}
