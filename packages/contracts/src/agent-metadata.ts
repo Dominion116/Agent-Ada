@@ -6,7 +6,7 @@
  * deployed URL of that endpoint so explorers can fetch this document.
  */
 
-import { CELO_MAINNET_NETWORK, CELO_USDC_ADDRESS, X402_PRICES } from "./x402-config.js";
+import { CELO_MAINNET_NETWORK, CELO_CUSD_ADDRESS, X402_PRICES } from "./x402-config.js";
 
 export interface AgentProfile {
   name: string;

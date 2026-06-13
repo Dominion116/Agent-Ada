@@ -25,15 +25,35 @@ export const CELO_SEPOLIA_NETWORK = "eip155:11142220";
 /** Native USDC on Celo mainnet (6 decimals). */
 export const CELO_USDC_ADDRESS: `0x${string}` = "0xcebA9300f2b948710d2653dD7B07f33A8B32118C";
 
+/**
+ * cUSD ("Mento Dollar") on Celo mainnet (18 decimals). Unlike USDC, cUSD does
+ * not implement EIP-3009 `transferWithAuthorization` — it implements EIP-2612
+ * `permit` instead, with the on-chain EIP-712 domain {name: "Mento Dollar",
+ * version: "3"} (confirmed against its on-chain DOMAIN_SEPARATOR()).
+ */
+export const CELO_CUSD_ADDRESS: `0x${string}` = "0x765DE816845861e75A25fCA122bb6898B8B1282a";
+export const CELO_CUSD_DECIMALS = 18;
+export const CELO_CUSD_EIP712 = {
+  name: "Mento Dollar",
+  version: "3",
+  primaryType: "Permit",
+} as const;
+
 export const X402_SCHEME = "exact" as const;
 
 // ── Prices ───────────────────────────────────────────────────
-// thirdweb's /accepts endpoint takes a "Money" string, e.g. "$0.001".
+// Displayed/advertised as USD amounts; settled in cUSD (1 cUSD ≈ $1).
 
 export const X402_PRICES = {
   yields: "$0.001",
   execute: "$0.10",
 } as const;
+
+/** Converts a "$X.XX" price string into raw cUSD token units (18 decimals). */
+export function usdToCusdAmount(usd: string): string {
+  const dollars = Number(usd.replace("$", ""));
+  return BigInt(Math.round(dollars * 10 ** CELO_CUSD_DECIMALS)).toString();
+}
 
 // ── Payment requirement (returned by /accepts, echoed to /verify + /settle) ──
 
