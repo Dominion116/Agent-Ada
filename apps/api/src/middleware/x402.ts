@@ -99,7 +99,10 @@ async function fetchAccepts(
     }),
   });
 
-  if (!res.ok) throw new Error(`thirdweb /accepts responded ${res.status}`);
+  // thirdweb's /accepts responds with HTTP 402 carrying the payment
+  // requirements body (the same shape the resource server returns to its
+  // own caller) — only treat genuinely unexpected statuses as failures.
+  if (!res.ok && res.status !== 402) throw new Error(`thirdweb /accepts responded ${res.status}`);
   const body = (await res.json()) as { accepts?: unknown[] };
   return (body.accepts ?? []).map((a) => PaymentRequirementSchema.parse(a));
 }
