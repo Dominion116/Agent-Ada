@@ -24,6 +24,37 @@ export const ERC20_ABI = [
   },
 ] as const;
 
+// EIP-2612 permit + transferFrom — used to self-settle x402 cUSD payments
+// by spending the payer's signed Permit directly (see onchain/cusd-settlement.ts).
+export const ERC20_PERMIT_ABI = [
+  {
+    name: "permit",
+    type: "function",
+    stateMutability: "nonpayable",
+    inputs: [
+      { name: "owner", type: "address" },
+      { name: "spender", type: "address" },
+      { name: "value", type: "uint256" },
+      { name: "deadline", type: "uint256" },
+      { name: "v", type: "uint8" },
+      { name: "r", type: "bytes32" },
+      { name: "s", type: "bytes32" },
+    ],
+    outputs: [],
+  },
+  {
+    name: "transferFrom",
+    type: "function",
+    stateMutability: "nonpayable",
+    inputs: [
+      { name: "from", type: "address" },
+      { name: "to", type: "address" },
+      { name: "amount", type: "uint256" },
+    ],
+    outputs: [{ name: "", type: "bool" }],
+  },
+] as const;
+
 // Moola (Aave v2) LendingPool — write selectors for supply and withdraw.
 export const LENDING_POOL_V2_WRITE_ABI = [
   {

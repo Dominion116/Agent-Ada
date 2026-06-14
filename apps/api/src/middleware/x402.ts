@@ -7,12 +7,18 @@
  *
  * Flow per request:
  *   1. Ask the facilitator what payment is required for this resource
- *      (POST /accepts).
+ *      (POST /accepts), with `payTo` forced to our own wallet address —
+ *      thirdweb's /accepts otherwise echoes its own server wallet.
  *   2. If the client sent no X-PAYMENT header, return 402 with those
  *      requirements.
  *   3. Otherwise decode the header, verify it against the requirements
- *      (POST /verify), settle it on-chain (POST /settle), record the
+ *      (POST /verify, free), self-settle on-chain by redeeming the payer's
+ *      EIP-2612 Permit (see onchain/cusd-settlement.ts), record the
  *      settlement in api_calls, and call next().
+ *
+ * Settlement avoids thirdweb's hosted /settle entirely (it requires mainnet
+ * billing) — instead the agent's own EOA (AGENT_PRIVATE_KEY) calls permit()
+ * + transferFrom() directly, paying only Celo gas.
  *
  * If THIRDWEB_SECRET_KEY / X402_WALLET_ADDRESS / X402_SERVER_WALLET_ADDRESS
  * are not configured, the gate is skipped entirely (useful for local dev
@@ -35,10 +41,10 @@ import {
   type PaymentPayload,
   type PaymentRequiredBody,
   type VerifyResponse,
-  type SettleResponse,
 } from "@ada/contracts";
 import { getDb, recordApiCall } from "../lib/db.js";
 import { logger } from "../lib/logger.js";
+import { settleCusdPermit } from "../onchain/cusd-settlement.js";
 
 declare global {
   // eslint-disable-next-line @typescript-eslint/no-namespace
@@ -111,7 +117,12 @@ async function fetchAccepts(
   // own caller) — only treat genuinely unexpected statuses as failures.
   if (!res.ok && res.status !== 402) throw new Error(`thirdweb /accepts responded ${res.status}`);
   const body = (await res.json()) as { accepts?: unknown[] };
-  return (body.accepts ?? []).map((a) => PaymentRequirementSchema.parse(a));
+  return (body.accepts ?? [])
+    .map((a) => PaymentRequirementSchema.parse(a))
+    // thirdweb echoes its own server wallet as `payTo` regardless of what we
+    // sent. Self-settlement needs the client to sign over OUR wallet as the
+    // permit spender, so force it back to ctx.payTo.
+    .map((a) => ({ ...a, payTo: ctx.payTo }));
 }
 
 async function verifyPayment(
@@ -127,21 +138,6 @@ async function verifyPayment(
 
   if (!res.ok) throw new Error(`thirdweb /verify responded ${res.status}`);
   return (await res.json()) as VerifyResponse;
-}
-
-async function settlePayment(
-  ctx: FacilitatorContext,
-  payload: PaymentPayload,
-  requirements: PaymentRequirement,
-): Promise<SettleResponse> {
-  const res = await fetch(`${THIRDWEB_X402_BASE_URL}/settle`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json", "x-secret-key": ctx.secretKey },
-    body: JSON.stringify({ x402Version: 1, paymentPayload: payload, paymentRequirements: requirements }),
-  });
-
-  if (!res.ok) throw new Error(`thirdweb /settle responded ${res.status}`);
-  return (await res.json()) as SettleResponse;
 }
 
 function paymentRequired(error: string, accepts: PaymentRequirement[]): PaymentRequiredBody {
@@ -194,7 +190,7 @@ export function createX402Middleware(opts: X402MiddlewareOptions) {
         return;
       }
 
-      const settlement = await settlePayment(ctx, payment, requirements);
+      const settlement = await settleCusdPermit(payment, requirements);
       if (!settlement.success) {
         res.status(402).json(paymentRequired(settlement.errorReason ?? "Payment settlement failed", accepts));
         return;

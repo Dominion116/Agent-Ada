@@ -14,7 +14,12 @@ vi.mock("../../lib/db.js", () => ({
   recordApiCall: vi.fn().mockResolvedValue(undefined),
 }));
 
+vi.mock("../../onchain/cusd-settlement.js", () => ({
+  settleCusdPermit: vi.fn(),
+}));
+
 import { recordApiCall } from "../../lib/db.js";
+import { settleCusdPermit } from "../../onchain/cusd-settlement.js";
 
 const ENV_KEYS = ["THIRDWEB_SECRET_KEY", "X402_WALLET_ADDRESS", "X402_SERVER_WALLET_ADDRESS", "X402_NETWORK"];
 
@@ -184,9 +189,14 @@ describe("createX402Middleware", () => {
   it("returns 402 when settlement fails", async () => {
     const fetchMock = vi.fn()
       .mockResolvedValueOnce(jsonResponse({ accepts: [ACCEPT] }))
-      .mockResolvedValueOnce(jsonResponse({ isValid: true, payer: "0xpayer" }))
-      .mockResolvedValueOnce(jsonResponse({ success: false, errorReason: "settle_failed", transaction: "", network: "eip155:42220" }));
+      .mockResolvedValueOnce(jsonResponse({ isValid: true, payer: "0xpayer" }));
     vi.stubGlobal("fetch", fetchMock);
+    vi.mocked(settleCusdPermit).mockResolvedValueOnce({
+      success: false,
+      errorReason: "settle_failed",
+      transaction: "",
+      network: "eip155:42220",
+    });
 
     const middleware = createX402Middleware({ price: "$0.001", description: "x", endpoint: "GET /x" });
     const req = mockReq({ "X-PAYMENT": encodePayment(PAYMENT_PAYLOAD) });
@@ -222,9 +232,9 @@ describe("createX402Middleware", () => {
 
     const fetchMock = vi.fn()
       .mockResolvedValueOnce(jsonResponse({ accepts: [ACCEPT] }))
-      .mockResolvedValueOnce(jsonResponse({ isValid: true, payer: settlement.payer }))
-      .mockResolvedValueOnce(jsonResponse(settlement));
+      .mockResolvedValueOnce(jsonResponse({ isValid: true, payer: settlement.payer }));
     vi.stubGlobal("fetch", fetchMock);
+    vi.mocked(settleCusdPermit).mockResolvedValueOnce(settlement);
 
     const middleware = createX402Middleware({ price: "$0.001", description: "x", endpoint: "GET /api/agent/yields" });
     const req = mockReq({ "X-PAYMENT": encodePayment(PAYMENT_PAYLOAD) });
@@ -256,9 +266,9 @@ describe("createX402Middleware", () => {
 
     const fetchMock = vi.fn()
       .mockResolvedValueOnce(jsonResponse({ accepts: [ACCEPT] }))
-      .mockResolvedValueOnce(jsonResponse({ isValid: true, payer: settlement.payer }))
-      .mockResolvedValueOnce(jsonResponse(settlement));
+      .mockResolvedValueOnce(jsonResponse({ isValid: true, payer: settlement.payer }));
     vi.stubGlobal("fetch", fetchMock);
+    vi.mocked(settleCusdPermit).mockResolvedValueOnce(settlement);
 
     const middleware = createX402Middleware({ price: "$0.001", description: "x", endpoint: "GET /api/agent/yields" });
     const req = mockReq({ "X-PAYMENT": encodePayment(PAYMENT_PAYLOAD), "X-Agent-Id": "agent-42" });
