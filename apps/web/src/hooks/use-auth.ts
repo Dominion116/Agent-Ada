@@ -2,7 +2,14 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useWallet } from "@/hooks/use-wallet";
-import { fetchNonce, verifySignature, setToken, clearToken, getToken } from "@/lib/api";
+import {
+  fetchNonce,
+  verifySignature,
+  setToken,
+  clearToken,
+  getToken,
+  SESSION_EXPIRED_EVENT,
+} from "@/lib/api";
 
 /**
  * Bridges a connected wallet to an Ada backend session via SIWE.
@@ -23,6 +30,16 @@ export function useAuth() {
   useEffect(() => {
     setHasSession(Boolean(getToken()));
     setIsInitialized(true);
+  }, []);
+
+  // A request came back 401: the stored token is gone, drop the session
+  // so the dashboard sends the user back to sign in.
+  useEffect(() => {
+    function handleExpired() {
+      setHasSession(false);
+    }
+    window.addEventListener(SESSION_EXPIRED_EVENT, handleExpired);
+    return () => window.removeEventListener(SESSION_EXPIRED_EVENT, handleExpired);
   }, []);
 
   const signIn = useCallback(async () => {

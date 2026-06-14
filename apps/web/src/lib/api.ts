@@ -32,6 +32,9 @@ export function clearToken(): void {
   window.localStorage.removeItem(TOKEN_KEY);
 }
 
+/** Dispatched when a request comes back 401, so useAuth can drop the stale session. */
+export const SESSION_EXPIRED_EVENT = "ada:session-expired";
+
 // ── Core fetch wrapper ────────────────────────────────────────
 
 export class ApiError extends Error {
@@ -78,6 +81,14 @@ async function request<T>(path: string, opts: RequestOptions = {}): Promise<T> {
           ? data.error
           : JSON.stringify(data.error)
         : `Request failed: ${res.status}`;
+
+    // A stale or expired session token: drop it and let useAuth send the user
+    // back to sign in, rather than surfacing this as a backend-down error.
+    if (auth && res.status === 401) {
+      clearToken();
+      if (typeof window !== "undefined") window.dispatchEvent(new Event(SESSION_EXPIRED_EVENT));
+    }
+
     throw new ApiError(res.status, message, data);
   }
 
