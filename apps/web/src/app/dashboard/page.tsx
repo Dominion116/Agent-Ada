@@ -41,8 +41,11 @@ export default function OverviewPage() {
     setError(null);
     setInfo(null);
     try {
-      const cusd = balances.find((b) => b.asset === "cUSD");
-      const result = await api.quote(cusd?.raw ?? "0", "cUSD");
+      // Quote whichever stablecoin the wallet actually holds the most of.
+      const largest = [...balances].sort(
+        (a, b) => parseFloat(b.formatted) - parseFloat(a.formatted),
+      )[0];
+      const result = await api.quote(largest?.raw ?? "0", (largest?.asset as Asset) ?? "cUSD");
       setQuote(result);
     } catch (err) {
       // A 422 means Ada looked and found nothing actionable (no profitable
