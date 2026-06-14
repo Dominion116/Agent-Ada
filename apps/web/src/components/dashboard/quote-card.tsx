@@ -53,6 +53,7 @@ export function QuoteCard({
   expiresAt,
   verdict = "pass",
   reason,
+  comingSoon = false,
   onApprove,
   onReject,
   approving = false,
@@ -62,6 +63,8 @@ export function QuoteCard({
   expiresAt?: string;
   verdict?: "pass" | "fail";
   reason?: string;
+  /** Route type is supported (passes policy) but execution isn't built yet — disables approve. */
+  comingSoon?: boolean;
   onApprove?: () => void;
   onReject?: () => void;
   approving?: boolean;
@@ -83,6 +86,7 @@ export function QuoteCard({
           <Badge variant={verdict === "pass" ? "success" : "destructive"}>
             {verdict === "pass" ? "Passes policy" : "Blocked"}
           </Badge>
+          {comingSoon ? <Badge variant="info">Coming soon</Badge> : null}
         </div>
       </div>
 
@@ -114,7 +118,7 @@ export function QuoteCard({
               className="w-full sm:w-auto"
               size="lg"
               onClick={onApprove}
-              disabled={approving || expired || verdict === "fail"}
+              disabled={approving || expired || verdict === "fail" || comingSoon}
             >
               {approving ? "Submitting…" : "Approve and execute"}
             </Button>

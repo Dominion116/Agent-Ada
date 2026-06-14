@@ -308,6 +308,8 @@ router.post("/agent/quote", requireAuth, async (req, res, next) => {
  *         description: Quote expired
  *       402:
  *         description: Payment required (x402). Response body lists accepted payment methods.
+ *       501:
+ *         description: Quote is a cross-chain route; execution is not yet supported
  */
 router.post(
   "/agent/execute",
@@ -329,6 +331,13 @@ router.post(
       const { data: quote } = await db.from("quotes").select("*").eq("id", quoteId).maybeSingle();
       if (!quote) { res.status(404).json({ error: "Quote not found or expired" }); return; }
       if (new Date(quote.expires_at) < new Date()) { res.status(410).json({ error: "Quote expired" }); return; }
+
+      if (quote.source_chain !== quote.dest_chain) {
+        res.status(501).json({
+          error: "Cross-chain execution is coming soon. Reject this quote or wait for a same-chain opportunity.",
+        });
+        return;
+      }
 
       const policy = await getLatestPolicy(db, walletAddress);
       if (!policy) { res.status(422).json({ error: "No policy configured" }); return; }

@@ -14,6 +14,9 @@ import { Button } from "@/components/ui/button";
 type ActionState = { approving: boolean; error: string | null };
 type ActionMap = Record<string, ActionState>;
 
+const CROSS_CHAIN_REASON =
+  "Cross-chain execution is coming soon. You can reject this quote or wait for a same-chain opportunity.";
+
 function QuoteCardSkeleton() {
   return (
     <div className="animate-pulse rounded-xl border bg-card p-6">
@@ -159,12 +162,15 @@ export default function ApprovalsPage() {
           {pendingQuotes.map((q) => {
             const state = actions[q.id];
             const { route, expiresAt } = quoteToCardProps(q);
+            const crossChain = q.source_chain !== q.dest_chain;
             return (
               <div key={q.id} className="space-y-2">
                 <QuoteCard
                   route={route}
                   expiresAt={expiresAt}
                   verdict="pass"
+                  reason={crossChain ? CROSS_CHAIN_REASON : undefined}
+                  comingSoon={crossChain}
                   onApprove={() => handleApprove(q)}
                   onReject={() => handleReject(q)}
                   approving={state?.approving ?? false}
@@ -184,12 +190,15 @@ export default function ApprovalsPage() {
           <p className="eyebrow text-muted-foreground">Expired</p>
           {expiredQuotes.map((q) => {
             const { route, expiresAt } = quoteToCardProps(q);
+            const crossChain = q.source_chain !== q.dest_chain;
             return (
               <QuoteCard
                 key={q.id}
                 route={route}
                 expiresAt={expiresAt}
                 verdict="pass"
+                reason={crossChain ? CROSS_CHAIN_REASON : undefined}
+                comingSoon={crossChain}
                 onReject={() => handleReject(q)}
                 className="opacity-60"
               />
