@@ -38,8 +38,8 @@ export default function OverviewPage() {
     setQuoting(true);
     setError(null);
     try {
-      const usdc = balances.find((b) => b.asset === "USDC");
-      const result = await api.quote(usdc?.raw ?? "0", "USDC");
+      const cusd = balances.find((b) => b.asset === "cUSD");
+      const result = await api.quote(cusd?.raw ?? "0", "cUSD");
       setQuote(result);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Could not build a quote right now.");
