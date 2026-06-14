@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { ArrowUpRight, Sparkles } from "lucide-react";
-import type { Route } from "@ada/shared";
+import type { Asset, Route } from "@ada/shared";
 import { useYields, useBalance, useRuns, usePolicy } from "@/hooks/use-agent-data";
 import { api, ApiError } from "@/lib/api";
 import { PageHeader, Section } from "@/components/dashboard/section";
@@ -13,7 +13,7 @@ import { EmptyState } from "@/components/dashboard/empty-state";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { runModeBadge, runStatusBadge, timeAgo } from "@/lib/format";
+import { formatTokenAmount, runModeBadge, runStatusBadge, timeAgo } from "@/lib/format";
 
 type Quote = { quoteId: string; route: Route; approvalToken: string; expiresAt: string };
 
@@ -145,7 +145,9 @@ export default function OverviewPage() {
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
             {balances.map((b) => (
               <Card key={b.asset} className="p-5">
-                <p className="text-3xl font-bold tabular-nums">{b.formatted}</p>
+                <p className="truncate text-3xl font-bold tabular-nums" title={b.formatted}>
+                  {formatTokenAmount(b.raw, b.asset as Asset)}
+                </p>
                 <p className="mt-1 eyebrow text-muted-foreground">{b.asset}</p>
               </Card>
             ))}
