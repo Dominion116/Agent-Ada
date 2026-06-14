@@ -87,7 +87,7 @@ export function PolicyForm({
   initial,
   onSave,
 }: {
-  initial: Policy;
+  initial: PolicyUpdate;
   onSave: (update: PolicyUpdate) => Promise<Policy>;
 }) {
   const [minGain, setMinGain] = useState(String(initial.min_net_gain_bps));

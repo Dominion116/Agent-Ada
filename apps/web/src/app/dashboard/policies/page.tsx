@@ -11,6 +11,16 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { bpsToPercent } from "@/lib/utils";
 
+// Mirrors DefaultPolicy in @ada/shared (kept inline: see feedback-web-type-only-shared-imports).
+const DEFAULT_POLICY: PolicyUpdate = {
+  min_net_gain_bps: 50,
+  max_route_cost_bps: 150,
+  cooldown_hours: 24,
+  allowed_chains: ["celo"],
+  allowed_venues: ["moola"],
+  kill_switch: false,
+};
+
 function HistoryRow({ policy, active }: { policy: Policy; active: boolean }) {
   return (
     <Card className="flex flex-wrap items-center justify-between gap-3 p-4">
@@ -88,11 +98,13 @@ export default function PoliciesPage() {
       ) : null}
 
       {!isLoading && !policy && !error ? (
-        <EmptyState
-          eyebrow="No policy yet"
-          title="You have not set a policy"
-          description="Define the rules Ada acts within. Once saved, every scan and execution is checked against them."
-        />
+        <Section eyebrow="No policy yet">
+          <p className="max-w-[60ch] text-sm leading-relaxed text-muted-foreground">
+            Define the rules Ada acts within. Once saved, every scan and execution is checked
+            against them.
+          </p>
+          <PolicyForm initial={DEFAULT_POLICY} onSave={handleSave} />
+        </Section>
       ) : null}
     </div>
   );
