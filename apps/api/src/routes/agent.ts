@@ -8,7 +8,7 @@ import { getYields } from "../agent/yield-discovery.js";
 import { buildQuote } from "../agent/loop.js";
 import { executeRebalance, type RunRepository } from "../agent/execution-engine.js";
 import { createCeloTransactionSender, feeCurrencyFromEnv } from "../onchain/transaction-sender.js";
-import { parseCommand, composeExplanation } from "../agent/nl-parser.js";
+import { parseCommand, composeExplanation, composeFreeformReply } from "../agent/nl-parser.js";
 import { sendTelegramNotification } from "../telegram/notify.js";
 import { handleTelegramWebhook } from "../telegram/handler.js";
 import { buildAgentProfile, X402_PRICES } from "@ada/contracts";
@@ -568,7 +568,7 @@ router.post("/agent/chat", requireAuth, async (req, res, next) => {
     } else if (cmd.type === "rebalance") {
       responseText = `Understood. Use the Approvals page or send a quote request to start a rebalance of ${cmd.amount} USDC.`;
     } else {
-      responseText = "I didn't understand that. Try: check yields, check balance, or explain last run.";
+      responseText = await composeFreeformReply(message);
     }
 
     await db.from("chats").insert({ wallet_address: wallet, role: "assistant" as const, content: responseText });

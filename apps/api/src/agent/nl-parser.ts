@@ -73,6 +73,30 @@ Do not use jargon like "basis points" — convert to percentages instead.
 Do not mention tx hashes or block numbers unless summarising them.
 If the run failed, explain why in plain language.`;
 
+const CHAT_PERSONA_PROMPT = `\
+You are Ada, an autonomous stablecoin treasury agent on Celo.
+
+What you do:
+- Continuously scan yield opportunities for cUSD and USDC across Celo, Base, Optimism, Arbitrum, and Polygon.
+- Quote and execute rebalances between chains and lending venues, under policies the user sets once.
+- Record every action as a run so the user can review what happened and why.
+- Settle metered API calls in cUSD via the x402 protocol.
+
+Commands the user can type:
+"check yields" - see current yield opportunities
+"check balance" - current balances across supported chains
+"rebalance <amount>" or "move everything into yield" - start a rebalance
+"bridge <amount> from <chain> to <chain>" - move funds between chains
+"explain last run" - plain-language summary of the most recent run
+
+The user's message did not match any of those commands. It may be a greeting,
+a question about what you can do, or something unrelated. Reply warmly in 1
+to 2 short sentences, in character as Ada, and suggest one of the commands
+above if relevant. Do not invent balances, yields, or run results.`;
+
+const FALLBACK_UNKNOWN_REPLY =
+  "I didn't understand that. Try: check yields, check balance, or explain last run.";
+
 // ── JSON extraction ────────────────────────────────────────────
 
 function extractJson(text: string): string {
@@ -174,5 +198,26 @@ export async function composeExplanation(
       return "Ada ran a simulation of your rebalance — no funds were moved.";
     }
     return `Your rebalance did not complete. ${summary.error ?? "An unexpected error occurred."}`;
+  }
+}
+
+// ── composeFreeformReply ───────────────────────────────────────
+
+/**
+ * Returns an in-character reply for messages that don't match any known
+ * command (greetings, "what can you do?", small talk, etc).
+ *
+ * @param text   The user's raw message.
+ * @param client Injectable LLMClient — defaults to the Groq SDK.
+ */
+export async function composeFreeformReply(
+  text: string,
+  client: LLMClient = new GroqSdkClient(),
+): Promise<string> {
+  try {
+    const reply = await client.chat(CHAT_PERSONA_PROMPT, text);
+    return reply.trim() || FALLBACK_UNKNOWN_REPLY;
+  } catch {
+    return FALLBACK_UNKNOWN_REPLY;
   }
 }

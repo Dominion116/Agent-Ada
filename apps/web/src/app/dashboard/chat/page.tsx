@@ -11,6 +11,9 @@ import { cn } from "@/lib/utils";
 
 const QUICK_ACTIONS = ["Check yields", "What's my balance?", "Explain last run"];
 
+// Cap on the auto-growing composer height, in pixels (~7 lines).
+const MAX_INPUT_HEIGHT = 160;
+
 function newMessage(role: ChatMessage["role"], content: string, payload: ChatMessage["payload"] = null): ChatMessage {
   return {
     id: crypto.randomUUID(),
@@ -28,6 +31,7 @@ export default function ChatPage() {
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
   const seeded = useRef(false);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   // Seed the local thread from history once, then own it locally.
   useEffect(() => {
@@ -36,6 +40,14 @@ export default function ChatPage() {
       seeded.current = true;
     }
   }, [serverMessages]);
+
+  // Grow the composer with its content instead of showing a scrollbar.
+  useEffect(() => {
+    const el = textareaRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${Math.min(el.scrollHeight, MAX_INPUT_HEIGHT)}px`;
+  }, [input]);
 
   async function send(text: string) {
     const content = text.trim();
@@ -105,12 +117,13 @@ export default function ChatPage() {
 
           <div className="flex items-end gap-2 rounded-xl border bg-card p-2">
             <textarea
+              ref={textareaRef}
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={onKeyDown}
               rows={1}
               placeholder="Message Ada"
-              className="max-h-32 flex-1 resize-none bg-transparent px-2 py-2 text-sm leading-relaxed outline-none placeholder:text-muted-foreground"
+              className="flex-1 resize-none overflow-hidden bg-transparent px-2 py-2 text-sm leading-relaxed outline-none placeholder:text-muted-foreground"
             />
             <button
               type="button"

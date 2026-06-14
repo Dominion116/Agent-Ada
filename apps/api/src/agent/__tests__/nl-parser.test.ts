@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import { parseCommand, composeExplanation, type LLMClient } from "../nl-parser.js";
+import { parseCommand, composeExplanation, composeFreeformReply, type LLMClient } from "../nl-parser.js";
 import type { Run } from "@ada/shared";
 
 // ── Mock client builder ───────────────────────────────────────
@@ -225,5 +225,34 @@ describe("composeExplanation", () => {
     });
     const result = await composeExplanation(run, makeFailingClient());
     expect(result).toMatch(/kill switch is active/i);
+  });
+});
+
+// ── composeFreeformReply ───────────────────────────────────────
+
+describe("composeFreeformReply", () => {
+  it("calls the LLM with the chat persona prompt and the user's message", async () => {
+    const client = makeClient("Hey! I'm Ada, I keep your stablecoins working. Try 'check yields'.");
+    await composeFreeformReply("Hi there, Ada", client);
+    expect(client.chat).toHaveBeenCalledOnce();
+    const [systemPrompt, userMessage] = (client.chat as ReturnType<typeof vi.fn>).mock.calls[0] as [string, string];
+    expect(systemPrompt).toMatch(/Ada/);
+    expect(userMessage).toBe("Hi there, Ada");
+  });
+
+  it("returns the LLM response", async () => {
+    const expected = "Hey! I'm Ada, your treasury agent on Celo.";
+    const result = await composeFreeformReply("Hi there, Ada", makeClient(expected));
+    expect(result).toBe(expected);
+  });
+
+  it("falls back to the canned reply when the LLM returns empty text", async () => {
+    const result = await composeFreeformReply("Hi there, Ada", makeClient("   "));
+    expect(result).toMatch(/check yields/i);
+  });
+
+  it("falls back to the canned reply when the LLM call fails", async () => {
+    const result = await composeFreeformReply("Hi there, Ada", makeFailingClient());
+    expect(result).toMatch(/check yields/i);
   });
 });
