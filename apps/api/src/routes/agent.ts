@@ -51,6 +51,27 @@ function dbRepo(): RunRepository {
 }
 
 /**
+ * Wraps an x402 gate so a signed-in wallet (the dashboard, viewing its own
+ * data) passes through for free. Callers without a valid session — other
+ * agents, x402 clients — still pay the metered price.
+ */
+function freeForOwnSession(x402: ReturnType<typeof createX402Middleware>) {
+  return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    const header = req.headers["authorization"];
+    if (header?.startsWith("Bearer ")) {
+      try {
+        req.walletAddress = await verifyWalletJwt(header.slice(7));
+        next();
+        return;
+      } catch {
+        // Not a valid session token — fall through to the x402 gate.
+      }
+    }
+    x402(req, res, next);
+  };
+}
+
+/**
  * @swagger
  * /api/agent/profile:
  *   get:
@@ -109,11 +130,13 @@ router.get("/agent/profile", (_req, res) => {
  */
 router.get(
   "/agent/yields",
-  createX402Middleware({
-    price: X402_PRICES.yields,
-    description: "Current cached yield data across all supported venues and chains.",
-    endpoint: "GET /api/agent/yields",
-  }),
+  freeForOwnSession(
+    createX402Middleware({
+      price: X402_PRICES.yields,
+      description: "Current cached yield data across all supported venues and chains.",
+      endpoint: "GET /api/agent/yields",
+    }),
+  ),
   async (_req, res, next) => {
     try {
       const yields = await getYields();

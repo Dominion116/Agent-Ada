@@ -119,8 +119,9 @@ export async function verifySignature(
 // ── Typed endpoint helpers (used by SWR hooks) ───────────────
 
 const realApi = {
-  yields: () =>
-    request<{ yields: YieldData[]; cachedAt: string }>("/api/agent/yields", { auth: false }),
+  // Sends the session token (if any) so the dashboard's own wallet skips
+  // the x402 paywall on this endpoint; other callers pay per call.
+  yields: () => request<{ yields: YieldData[]; cachedAt: string }>("/api/agent/yields"),
 
   balance: () =>
     request<{ balances: { asset: string; raw: string; decimals: number; formatted: string }[] }>(
