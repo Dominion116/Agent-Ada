@@ -2,8 +2,9 @@
  * Lean wallet connection using the raw EIP-1193 injected provider.
  *
  * MiniPay injects window.ethereum (with isMiniPay = true) on Celo, as do
- * standard browser wallets. This avoids a heavy multi-chain wallet SDK:
- * Ada is Celo-only and the primary user opens it inside MiniPay.
+ * standard browser wallets. This is the primary path: Ada is Celo-only and
+ * most users open it inside MiniPay. Browsers with no injected provider fall
+ * back to the Reown AppKit modal in `lib/reown.ts` / `hooks/use-wallet.tsx`.
  */
 
 const CELO_CHAIN_ID_HEX = "0xa4ec"; // 42220
@@ -15,15 +16,11 @@ export interface Eip1193Provider {
   isMiniPay?: boolean;
 }
 
-declare global {
-  interface Window {
-    ethereum?: Eip1193Provider;
-  }
-}
-
 export function getProvider(): Eip1193Provider | null {
   if (typeof window === "undefined") return null;
-  return window.ethereum ?? null;
+  // @reown/appkit also augments `Window.ethereum` (as a looser type), so we
+  // cast locally here instead of redeclaring the global.
+  return (window as unknown as { ethereum?: Eip1193Provider }).ethereum ?? null;
 }
 
 export function isMiniPay(): boolean {

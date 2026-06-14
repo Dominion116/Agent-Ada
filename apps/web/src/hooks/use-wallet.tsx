@@ -1,10 +1,13 @@
 "use client";
 
 import { createContext, useCallback, useContext, useEffect, useState } from "react";
+import { useAccount, useDisconnect, useSignMessage } from "wagmi";
+import { useAppKit } from "@reown/appkit/react";
 import {
   connectWallet,
   getConnectedAccount,
   getProvider,
+  hasInjectedWallet,
   isMiniPay,
   signMessage as signWithProvider,
 } from "@/lib/wallet";
@@ -23,16 +26,22 @@ interface WalletState {
 const WalletContext = createContext<WalletState | null>(null);
 
 export function WalletProvider({ children }: { children: React.ReactNode }) {
-  const [address, setAddress] = useState<string | null>(null);
+  const [injectedAddress, setInjectedAddress] = useState<string | null>(null);
   const [connecting, setConnecting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [miniPay, setMiniPay] = useState(false);
+
+  // WalletConnect fallback for browsers with no injected provider.
+  const { address: reownAddress, status: reownStatus } = useAccount();
+  const { disconnect: disconnectReown } = useDisconnect();
+  const { signMessageAsync } = useSignMessage();
+  const { open } = useAppKit();
 
   // On mount, pick up an already-authorised account (MiniPay auto-connects).
   useEffect(() => {
     setMiniPay(isMiniPay());
     getConnectedAccount().then((acc) => {
-      if (acc) setAddress(acc);
+      if (acc) setInjectedAddress(acc);
     });
 
     const provider = getProvider();
@@ -40,35 +49,51 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
 
     const handleAccountsChanged = (...args: unknown[]) => {
       const accounts = args[0] as string[];
-      setAddress(accounts?.[0] ?? null);
+      setInjectedAddress(accounts?.[0] ?? null);
     };
     provider.on("accountsChanged", handleAccountsChanged);
     return () => provider.removeListener?.("accountsChanged", handleAccountsChanged);
   }, []);
 
+  const address = injectedAddress ?? reownAddress ?? null;
+
   const connect = useCallback(async () => {
-    setConnecting(true);
     setError(null);
-    try {
-      const acc = await connectWallet();
-      setAddress(acc);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to connect wallet");
-    } finally {
-      setConnecting(false);
+
+    if (hasInjectedWallet()) {
+      setConnecting(true);
+      try {
+        const acc = await connectWallet();
+        setInjectedAddress(acc);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Failed to connect wallet");
+      } finally {
+        setConnecting(false);
+      }
+      return;
     }
-  }, []);
+
+    // No injected provider (e.g. desktop browser): fall back to Reown's
+    // WalletConnect modal for any mobile or browser wallet.
+    try {
+      await open();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to open wallet connector");
+    }
+  }, [open]);
 
   const disconnect = useCallback(() => {
-    setAddress(null);
-  }, []);
+    setInjectedAddress(null);
+    if (reownAddress) disconnectReown();
+  }, [reownAddress, disconnectReown]);
 
   const signMessage = useCallback(
     async (message: string) => {
-      if (!address) throw new Error("Wallet not connected");
-      return signWithProvider(address, message);
+      if (injectedAddress) return signWithProvider(injectedAddress, message);
+      if (reownAddress) return signMessageAsync({ message });
+      throw new Error("Wallet not connected");
     },
-    [address],
+    [injectedAddress, reownAddress, signMessageAsync],
   );
 
   return (
@@ -77,7 +102,7 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
         address,
         isConnected: address !== null,
         isMiniPay: miniPay,
-        connecting,
+        connecting: connecting || reownStatus === "connecting" || reownStatus === "reconnecting",
         error,
         connect,
         disconnect,
