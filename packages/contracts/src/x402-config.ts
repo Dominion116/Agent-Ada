@@ -47,6 +47,7 @@ export const X402_SCHEME = "exact" as const;
 export const X402_PRICES = {
   yields: "$0.001",
   execute: "$0.10",
+  a2a: "$0.001",
 } as const;
 
 /** Converts a "$X.XX" price string into raw cUSD token units (18 decimals). */

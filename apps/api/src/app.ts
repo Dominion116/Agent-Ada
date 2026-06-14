@@ -10,6 +10,7 @@ import healthRouter from "./routes/health.js";
 import authRouter from "./routes/auth.js";
 import agentRouter from "./routes/agent.js";
 import cronRouter from "./routes/cron.js";
+import a2aRouter from "./routes/a2a.js";
 
 export function createApp() {
   const app = express();
@@ -39,6 +40,10 @@ export function createApp() {
   app.use("/api", authRouter);
   app.use("/api", agentRouter);
   app.use("/api", cronRouter);
+
+  // A2A (Agent2Agent): /.well-known/agent-card.json and POST /a2a live at the
+  // origin root, not under /api, per RFC 8615.
+  app.use(a2aRouter);
 
   // ── 404 handler ─────────────────────────────────────────────
   app.use((_req, res) => {

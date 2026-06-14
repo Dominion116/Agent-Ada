@@ -1,75 +1,21 @@
 import { Router } from "express";
-import type { Request, Response, NextFunction } from "express";
-import { randomUUID } from "crypto";
 import { requireAuth } from "../middleware/auth.js";
 import { getDb, getLatestPolicy, getRuns, getQuotes, deleteQuote, getChatHistory, getTelegramConfig, upsertUser } from "../lib/db.js";
 import { encrypt } from "../lib/crypto.js";
-import { signApprovalToken, verifyApprovalToken, verifyWalletJwt } from "../lib/jwt.js";
 import { getYields } from "../agent/yield-discovery.js";
-import { buildQuote } from "../agent/loop.js";
-import { executeRebalance, type RunRepository } from "../agent/execution-engine.js";
-import { createCeloTransactionSender, feeCurrencyFromEnv } from "../onchain/transaction-sender.js";
-import { parseCommand, composeExplanation, composeFreeformReply } from "../agent/nl-parser.js";
-import { sendTelegramNotification } from "../telegram/notify.js";
+import { createQuote } from "../agent/quote-service.js";
+import { executeApprovedRebalance } from "../agent/execute-service.js";
+import { respondToCommand } from "../agent/command-responder.js";
+import { parseCommand } from "../agent/nl-parser.js";
 import { handleTelegramWebhook } from "../telegram/handler.js";
 import { buildAgentProfile, X402_PRICES } from "@ada/contracts";
 import { PolicyUpdateSchema, TelegramConfigInputSchema, ChatInputSchema, QuoteRequestSchema } from "@ada/shared";
 import { createX402Middleware } from "../middleware/x402.js";
+import { freeForOwnSession } from "../middleware/free-for-own-session.js";
 import { logger } from "../lib/logger.js";
-import type { Chain, Venue, Asset, Json, Run } from "@ada/shared";
+import type { Asset } from "@ada/shared";
 
 const router = Router();
-
-function dbRepo(): RunRepository {
-  const db = getDb();
-  return {
-    async create(run) {
-      const { error } = await db.from("runs").insert({
-        id: run.id,
-        wallet_address: run.wallet_address,
-        quote_id: run.quote_id,
-        mode: run.mode,
-        status: run.status,
-        tx_hashes: run.tx_hashes,
-        policy_version: run.policy_version,
-        outcome: run.outcome as unknown as Json | null,
-        started_at: run.started_at,
-        completed_at: run.completed_at,
-      });
-      if (error) throw new Error(error.message);
-    },
-    async update(id, patch) {
-      const { error } = await db.from("runs").update({
-        ...(patch.status !== undefined && { status: patch.status }),
-        ...(patch.tx_hashes !== undefined && { tx_hashes: patch.tx_hashes as unknown as Json }),
-        ...(patch.outcome !== undefined && { outcome: patch.outcome as unknown as Json }),
-        ...(patch.completed_at !== undefined && { completed_at: patch.completed_at }),
-      }).eq("id", id);
-      if (error) throw new Error(error.message);
-    },
-  };
-}
-
-/**
- * Wraps an x402 gate so a signed-in wallet (the dashboard, viewing its own
- * data) passes through for free. Callers without a valid session — other
- * agents, x402 clients — still pay the metered price.
- */
-function freeForOwnSession(x402: ReturnType<typeof createX402Middleware>) {
-  return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-    const header = req.headers["authorization"];
-    if (header?.startsWith("Bearer ")) {
-      try {
-        req.walletAddress = await verifyWalletJwt(header.slice(7));
-        next();
-        return;
-      } catch {
-        // Not a valid session token — fall through to the x402 gate.
-      }
-    }
-    x402(req, res, next);
-  };
-}
 
 /**
  * @swagger
@@ -234,35 +180,10 @@ router.post("/agent/quote", requireAuth, async (req, res, next) => {
 
     await upsertUser(getDb(), wallet);
 
-    const route = await buildQuote(wallet, asset as Asset, BigInt(amount));
-    if (!route) { res.status(422).json({ error: "No better route found or no policy configured" }); return; }
+    const result = await createQuote(getDb(), wallet, asset as Asset, BigInt(amount));
+    if (!result.ok) { res.status(result.status).json({ error: result.error }); return; }
 
-    const db = getDb();
-    const policy = await getLatestPolicy(db, wallet);
-    if (!policy) { res.status(422).json({ error: "No policy configured" }); return; }
-
-    const quoteId = randomUUID();
-    const approvalToken = await signApprovalToken(quoteId, wallet);
-    const expiresAt = new Date(Date.now() + 5 * 60 * 1000).toISOString();
-
-    await db.from("quotes").insert({
-      id: quoteId,
-      wallet_address: wallet,
-      source_chain: route.source_chain,
-      source_venue: route.source_venue,
-      dest_chain: route.dest_chain,
-      dest_venue: route.dest_venue,
-      asset: route.asset,
-      amount: Number(route.amount_in),
-      route_cost_bps: route.route_cost_bps,
-      net_gain_bps: route.net_gain_bps,
-      payback_days: route.payback_days,
-      policy_version: policy.version,
-      approval_token: approvalToken,
-      expires_at: expiresAt,
-    });
-
-    res.json({ quoteId, route, approvalToken, expiresAt });
+    res.json({ quoteId: result.quoteId, route: result.route, approvalToken: result.approvalToken, expiresAt: result.expiresAt });
   } catch (err) { next(err); }
 });
 
@@ -324,57 +245,10 @@ router.post(
       const { approvalToken } = req.body as { approvalToken?: string };
       if (!approvalToken) { res.status(400).json({ error: "approvalToken required" }); return; }
 
-      const { quoteId, walletAddress } = await verifyApprovalToken(approvalToken);
-      if (walletAddress !== req.walletAddress) { res.status(403).json({ error: "Token does not match session wallet" }); return; }
+      const result = await executeApprovedRebalance(getDb(), req.walletAddress!, approvalToken);
+      if (!result.ok) { res.status(result.status).json({ error: result.error }); return; }
 
-      const db = getDb();
-      const { data: quote } = await db.from("quotes").select("*").eq("id", quoteId).maybeSingle();
-      if (!quote) { res.status(404).json({ error: "Quote not found or expired" }); return; }
-      if (new Date(quote.expires_at) < new Date()) { res.status(410).json({ error: "Quote expired" }); return; }
-
-      if (quote.source_chain !== quote.dest_chain) {
-        res.status(501).json({
-          error: "Cross-chain execution is coming soon. Reject this quote or wait for a same-chain opportunity.",
-        });
-        return;
-      }
-
-      const policy = await getLatestPolicy(db, walletAddress);
-      if (!policy) { res.status(422).json({ error: "No policy configured" }); return; }
-
-      const [lastRun] = await getRuns(db, walletAddress, { limit: 1 });
-
-      const route = {
-        source_chain: quote.source_chain as Chain,
-        source_venue: quote.source_venue as Venue,
-        dest_chain: quote.dest_chain as Chain,
-        dest_venue: quote.dest_venue as Venue,
-        asset: quote.asset as Asset,
-        amount_in: String(quote.amount),
-        amount_out: String(quote.amount * (1 - quote.route_cost_bps / 10000)),
-        route_cost_bps: quote.route_cost_bps,
-        net_gain_bps: quote.net_gain_bps,
-        payback_days: quote.payback_days,
-        estimated_time_seconds: 300,
-        lifi_route: null,
-      };
-
-      const run = await executeRebalance({
-        walletAddress: walletAddress as `0x${string}`,
-        route,
-        policy: { ...policy, allowed_chains: policy.allowed_chains as Chain[], allowed_venues: policy.allowed_venues as Venue[] },
-        lastRun: lastRun ? { completed_at: lastRun.completed_at } : null,
-        quoteId,
-        mode: "live",
-        repo: dbRepo(),
-        generateId: randomUUID,
-        sender: createCeloTransactionSender({ feeCurrency: feeCurrencyFromEnv() }),
-      });
-
-      const event = run.status === "completed" ? "executed" : "error";
-      sendTelegramNotification(walletAddress, event, run).catch(() => {});
-
-      res.json({ run });
+      res.json({ run: result.run });
     } catch (err) { next(err); }
   },
 );
@@ -638,31 +512,7 @@ router.post("/agent/chat", requireAuth, async (req, res, next) => {
     await db.from("chats").insert({ wallet_address: wallet, role: "user" as const, content: message });
 
     const cmd = await parseCommand(message, wallet);
-
-    let responseText = "";
-    let payload: Record<string, unknown> | null = null;
-
-    if (cmd.type === "check_yields") {
-      const yields = await getYields().catch(() => []);
-      responseText = yields.length
-        ? `Found ${yields.length} yield sources. Best USDC: ${Math.max(...yields.map((y) => y.supply_rate_bps)) / 100}% APR.`
-        : "Unable to fetch yields right now.";
-      payload = { yields };
-    } else if (cmd.type === "check_balance") {
-      responseText = "Check the dashboard for your current balance across all supported chains.";
-    } else if (cmd.type === "explain_last_run") {
-      const [lastRun] = await getRuns(db, wallet, { limit: 1 });
-      if (lastRun) {
-        const runTyped = lastRun as unknown as Run;
-        responseText = await composeExplanation(runTyped).catch(() => `Last run status: ${lastRun.status}`);
-      } else {
-        responseText = "No runs found yet.";
-      }
-    } else if (cmd.type === "rebalance") {
-      responseText = `Understood. Use the Approvals page or send a quote request to start a rebalance of ${cmd.amount} USDC.`;
-    } else {
-      responseText = await composeFreeformReply(message);
-    }
+    const { text: responseText, payload } = await respondToCommand(cmd, message, wallet, db);
 
     await db.from("chats").insert({ wallet_address: wallet, role: "assistant" as const, content: responseText });
 
