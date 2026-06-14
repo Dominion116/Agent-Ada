@@ -56,6 +56,7 @@ export function useAuth() {
     walletAddress: address,
     isWalletConnected: isConnected,
     hasSession,
+    isInitialized,
     connecting,
     signingIn,
     error,
