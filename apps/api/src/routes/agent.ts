@@ -1,9 +1,10 @@
 import { Router } from "express";
+import type { Request, Response, NextFunction } from "express";
 import { randomUUID } from "crypto";
 import { requireAuth } from "../middleware/auth.js";
 import { getDb, getLatestPolicy, getRuns, getChatHistory, getTelegramConfig, upsertUser } from "../lib/db.js";
 import { encrypt } from "../lib/crypto.js";
-import { signApprovalToken, verifyApprovalToken } from "../lib/jwt.js";
+import { signApprovalToken, verifyApprovalToken, verifyWalletJwt } from "../lib/jwt.js";
 import { getYields } from "../agent/yield-discovery.js";
 import { buildQuote } from "../agent/loop.js";
 import { executeRebalance, type RunRepository } from "../agent/execution-engine.js";
