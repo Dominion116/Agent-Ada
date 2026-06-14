@@ -16,11 +16,13 @@ import { fetchNonce, verifySignature, setToken, clearToken, getToken } from "@/l
 export function useAuth() {
   const { address, isConnected, connect, disconnect, signMessage, connecting } = useWallet();
   const [hasSession, setHasSession] = useState(false);
+  const [isInitialized, setIsInitialized] = useState(false);
   const [signingIn, setSigningIn] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     setHasSession(Boolean(getToken()));
+    setIsInitialized(true);
   }, []);
 
   const signIn = useCallback(async () => {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
@@ -9,6 +9,7 @@ import {
   ChevronLeft,
   ChevronRight,
   LayoutDashboard,
+  Loader2,
   LogOut,
   MessageSquare,
   MoreHorizontal,
@@ -43,13 +44,13 @@ function isActive(pathname: string, href: string): boolean {
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
-  const { walletAddress, signOut } = useAuth();
+  const { walletAddress, hasSession, isInitialized, signOut } = useAuth();
   const [moreOpen, setMoreOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
 
-  // Wallet gating is disabled for now: the dashboard renders without a session
-  // so screens can be reviewed before auth is wired end to end. Re-enable by
-  // redirecting to "/" when `useAuth().hasSession` is false.
+  useEffect(() => {
+    if (isInitialized && !hasSession) router.replace("/");
+  }, [isInitialized, hasSession, router]);
 
   function handleSignOut() {
     signOut();
@@ -59,6 +60,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const more = NAV.filter((n) => !n.primary);
   const sidebarW = collapsed ? "w-[60px]" : "w-60";
   const contentPl = collapsed ? "md:pl-[60px]" : "md:pl-60";
+
+  if (!isInitialized || !hasSession) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
