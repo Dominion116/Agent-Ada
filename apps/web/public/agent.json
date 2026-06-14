@@ -1,16 +1,23 @@
 {
-  "type": "Agent",
+  "type": "https://eips.ethereum.org/EIPS/eip-8004#registration-v1",
   "name": "Agent Ada",
   "description": "Autonomous stablecoin treasury agent on Celo. Monitors yield across Moola and Aave V3, prices cross-chain moves via LI.FI, and rebalances under user-defined policies with explicit wallet approval. Accessible via Telegram, web dashboard, or x402 pay-per-call API.",
   "image": "https://agent-ada-web.vercel.app/ada-icon.png",
-  "endpoints": [
+  "services": [
     {
-      "type": "a2a",
-      "url": "https://agent-ada-web.vercel.app/"
+      "name": "web",
+      "endpoint": "https://agent-ada-web.vercel.app/"
     },
     {
-      "type": "wallet",
-      "address": "0x70f77a5c36ebd667360f6021bf4a95d274b3530e"
+      "name": "x402",
+      "endpoint": "https://agent-ada.onrender.com/api/agent/profile",
+      "version": "1.0.0"
+    }
+  ],
+  "registrations": [
+    {
+      "agentId": "9230",
+      "agentRegistry": "eip155:42220:0x8004A169FB4a3325136EB29fA0ceB6D2e539a432"
     }
   ],
   "supportedTrust": ["reputation"]
