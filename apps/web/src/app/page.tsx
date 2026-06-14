@@ -64,7 +64,7 @@ export default function HomePage() {
           </div>
           <nav className="flex flex-wrap gap-x-8 gap-y-3 text-sm font-semibold uppercase tracking-wider">
             <a
-              href="https://github.com"
+              href="https://github.com/Dominion116/Agent-Ada"
               className="underline-offset-4 hover:underline"
               target="_blank"
               rel="noreferrer"
@@ -80,7 +80,7 @@ export default function HomePage() {
               npm CLI
             </a>
             <a
-              href="https://agentscan.info"
+              href="https://agentscan.info/agents/e9027671-0c92-4c1e-8a86-9f19a0457cf5"
               className="underline-offset-4 hover:underline"
               target="_blank"
               rel="noreferrer"
