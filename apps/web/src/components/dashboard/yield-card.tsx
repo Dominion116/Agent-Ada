@@ -23,7 +23,7 @@ export function YieldCard({
   return (
     <Card
       className={cn(
-        "flex flex-col gap-4 p-5",
+        "flex flex-col gap-4 p-6",
         highlight && "border-primary ring-1 ring-primary",
         className,
       )}

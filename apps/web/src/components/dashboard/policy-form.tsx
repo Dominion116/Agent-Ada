@@ -66,7 +66,7 @@ function Chip({
       aria-checked={active}
       onClick={onClick}
       className={cn(
-        "rounded-md border px-3 py-1.5 text-xs font-semibold uppercase tracking-wide transition-colors",
+        "rounded-md border px-3 py-1.5 text-xs font-semibold uppercase tracking-wide transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
         active
           ? "border-primary bg-primary/10 text-primary"
           : "border-border text-muted-foreground hover:bg-accent hover:text-foreground",

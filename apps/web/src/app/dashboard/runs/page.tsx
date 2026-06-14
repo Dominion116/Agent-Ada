@@ -63,7 +63,7 @@ function FilterChips<T extends string>({
             type="button"
             onClick={() => onChange(opt.value)}
             className={cn(
-              "rounded-md border px-3 py-1 text-xs font-semibold uppercase tracking-wide transition-colors",
+              "rounded-md border px-3 py-1 text-xs font-semibold uppercase tracking-wide transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
               value === opt.value
                 ? "border-primary bg-primary/10 text-primary"
                 : "border-border text-muted-foreground hover:bg-accent hover:text-foreground",

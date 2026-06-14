@@ -108,7 +108,7 @@ export default function ChatPage() {
                 type="button"
                 onClick={() => void send(q)}
                 disabled={sending}
-                className="rounded-full border px-3 py-2 text-xs font-semibold text-muted-foreground transition-colors hover:bg-accent hover:text-foreground disabled:opacity-50"
+                className="rounded-full border px-3 py-2 text-xs font-semibold text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50"
               >
                 {q}
               </button>
@@ -131,7 +131,7 @@ export default function ChatPage() {
               disabled={sending || input.trim() === ""}
               aria-label="Send message"
               className={cn(
-                "flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground transition-opacity",
+                "flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground transition-opacity focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                 (sending || input.trim() === "") && "opacity-50",
               )}
             >

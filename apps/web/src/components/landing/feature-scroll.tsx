@@ -45,13 +45,13 @@ export function FeatureScroll() {
         <Eyebrow index="01">Who Ada is</Eyebrow>
         <hr className="rule" />
         <div>
-          <h1 className="display">
+          <h2 className="display">
             Yield
             <br />
             On
             <br />
             Autopilot
-          </h1>
+          </h2>
         </div>
         <hr className="rule" />
         <p className="mt-auto max-w-[50ch] text-[clamp(1rem,2.5vw,2rem)] font-normal leading-relaxed">

@@ -73,7 +73,7 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="space-y-10">
+    <div className="space-y-8">
       <PageHeader eyebrow="Settings" title="Identity and account" />
 
       {/* Account */}
@@ -87,7 +87,7 @@ export default function SettingsPage() {
                   type="button"
                   onClick={copyAddress}
                   aria-label="Copy wallet address"
-                  className="rounded-md p-1.5 text-muted-foreground hover:bg-accent hover:text-foreground"
+                  className="rounded-md p-1.5 text-muted-foreground hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
                   {copied ? <Check className="h-4 w-4 text-success" /> : <Copy className="h-4 w-4" />}
                 </button>

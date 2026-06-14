@@ -76,7 +76,7 @@ export default function OverviewPage() {
   }
 
   return (
-    <div className="space-y-10">
+    <div className="space-y-8">
       <PageHeader
         eyebrow="Overview"
         title="Your treasury at a glance"
@@ -147,7 +147,7 @@ export default function OverviewPage() {
         <Section eyebrow="Balances">
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
             {balances.map((b) => (
-              <Card key={b.asset} className="p-5">
+              <Card key={b.asset} className="p-6">
                 <p className="truncate text-3xl font-bold tabular-nums" title={b.formatted}>
                   {formatTokenAmount(b.raw, b.asset as Asset)}
                 </p>

@@ -59,7 +59,7 @@ export default function PoliciesPage() {
   }
 
   return (
-    <div className="space-y-10">
+    <div className="space-y-8">
       <PageHeader eyebrow="Policies" title="The rules Ada acts within" />
 
       {error ? (

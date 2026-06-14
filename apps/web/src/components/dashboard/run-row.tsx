@@ -48,7 +48,7 @@ export function RunRow({ run }: { run: Run }) {
         type="button"
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
-        className="flex w-full items-center gap-4 p-4 text-left transition-colors hover:bg-accent/50"
+        className="flex w-full items-center gap-4 p-4 text-left transition-colors hover:bg-accent/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
       >
         {/* Badges */}
         <div className="flex shrink-0 items-center gap-2">

@@ -102,7 +102,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               type="button"
               onClick={() => setCollapsed(true)}
               aria-label="Collapse sidebar"
-              className="rounded-md p-1 text-muted-foreground hover:bg-accent hover:text-foreground"
+              className="rounded-md p-1 text-muted-foreground hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               <ChevronLeft className="h-4 w-4" />
             </button>
@@ -118,8 +118,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 key={item.href}
                 href={item.href}
                 title={collapsed ? item.label : undefined}
+                aria-current={active ? "page" : undefined}
                 className={cn(
-                  "flex items-center rounded-md px-2 py-2 text-sm font-medium transition-colors",
+                  "flex items-center rounded-md px-2 py-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                   collapsed ? "justify-center gap-0" : "gap-3",
                   active
                     ? "bg-primary/10 text-primary"
@@ -140,7 +141,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               type="button"
               onClick={() => setCollapsed(false)}
               aria-label="Expand sidebar"
-              className="rounded-md p-1.5 text-muted-foreground hover:bg-accent hover:text-foreground"
+              className="rounded-md p-1.5 text-muted-foreground hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               <ChevronRight className="h-4 w-4" />
             </button>
@@ -184,8 +185,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 key={item.href}
                 href={item.href}
                 onClick={() => setMoreOpen(false)}
+                aria-current={isActive(pathname, item.href) ? "page" : undefined}
                 className={cn(
-                  "flex items-center gap-3 px-4 py-3 text-sm font-medium",
+                  "flex items-center gap-3 px-4 py-3 text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                   isActive(pathname, item.href)
                     ? "bg-primary/10 text-primary"
                     : "text-foreground hover:bg-accent",
@@ -205,8 +207,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 key={item.href}
                 href={item.href}
                 onClick={() => setMoreOpen(false)}
+                aria-current={active ? "page" : undefined}
                 className={cn(
-                  "flex min-h-[56px] flex-1 flex-col items-center justify-center gap-1 py-2 text-[0.65rem] font-semibold uppercase tracking-wide",
+                  "flex min-h-[56px] flex-1 flex-col items-center justify-center gap-1 py-2 text-[0.65rem] font-semibold uppercase tracking-wide focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                   active ? "text-primary" : "text-muted-foreground",
                 )}
               >
@@ -220,7 +223,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             onClick={() => setMoreOpen((v) => !v)}
             aria-expanded={moreOpen}
             className={cn(
-              "flex min-h-[56px] flex-1 flex-col items-center justify-center gap-1 py-2 text-[0.65rem] font-semibold uppercase tracking-wide",
+              "flex min-h-[56px] flex-1 flex-col items-center justify-center gap-1 py-2 text-[0.65rem] font-semibold uppercase tracking-wide focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
               moreOpen ? "text-primary" : "text-muted-foreground",
             )}
           >
