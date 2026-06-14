@@ -2,7 +2,7 @@ import { Router } from "express";
 import type { Request, Response, NextFunction } from "express";
 import { randomUUID } from "crypto";
 import { requireAuth } from "../middleware/auth.js";
-import { getDb, getLatestPolicy, getRuns, getChatHistory, getTelegramConfig, upsertUser } from "../lib/db.js";
+import { getDb, getLatestPolicy, getRuns, getQuotes, deleteQuote, getChatHistory, getTelegramConfig, upsertUser } from "../lib/db.js";
 import { encrypt } from "../lib/crypto.js";
 import { signApprovalToken, verifyApprovalToken, verifyWalletJwt } from "../lib/jwt.js";
 import { getYields } from "../agent/yield-discovery.js";
@@ -369,6 +369,65 @@ router.post(
     } catch (err) { next(err); }
   },
 );
+
+/**
+ * @swagger
+ * /api/agent/quotes:
+ *   get:
+ *     tags: [Agent]
+ *     summary: List quotes awaiting approval for the authenticated wallet
+ *     description: Returns the most recent quotes that have not yet been executed, newest first.
+ *     security:
+ *       - BearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Quotes awaiting a decision
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 quotes:
+ *                   type: array
+ *                   items: { type: object }
+ */
+router.get("/agent/quotes", requireAuth, async (req, res, next) => {
+  try {
+    const quotes = await getQuotes(getDb(), req.walletAddress!);
+    res.json({ quotes: quotes.map((q) => ({ ...q, amount: String(q.amount) })) });
+  } catch (err) { next(err); }
+});
+
+/**
+ * @swagger
+ * /api/agent/quotes/{id}:
+ *   delete:
+ *     tags: [Agent]
+ *     summary: Reject a quote
+ *     description: Removes a quote so it can no longer be executed. Has no effect on quotes belonging to other wallets.
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: string, format: uuid }
+ *     responses:
+ *       200:
+ *         description: Quote removed (or already gone)
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 ok: { type: boolean, example: true }
+ */
+router.delete("/agent/quotes/:id", requireAuth, async (req, res, next) => {
+  try {
+    await deleteQuote(getDb(), req.walletAddress!, String(req.params["id"]));
+    res.json({ ok: true });
+  } catch (err) { next(err); }
+});
 
 /**
  * @swagger

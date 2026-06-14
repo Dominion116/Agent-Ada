@@ -121,6 +121,40 @@ export async function getRuns(
   return data ?? [];
 }
 
+/** Quotes still awaiting a decision: not yet consumed by a run. */
+export async function getQuotes(db: Db, wallet: string) {
+  const { data: quotes, error } = await db
+    .from("quotes")
+    .select("*")
+    .eq("wallet_address", wallet)
+    .order("created_at", { ascending: false })
+    .limit(20);
+
+  if (error) throw new Error(`getQuotes: ${error.message}`);
+  if (!quotes || quotes.length === 0) return [];
+
+  const { data: runs, error: runsError } = await db
+    .from("runs")
+    .select("quote_id")
+    .eq("wallet_address", wallet)
+    .in("quote_id", quotes.map((q) => q.id));
+
+  if (runsError) throw new Error(`getQuotes: ${runsError.message}`);
+
+  const executed = new Set((runs ?? []).map((r) => r.quote_id));
+  return quotes.filter((q) => !executed.has(q.id));
+}
+
+export async function deleteQuote(db: Db, wallet: string, quoteId: string) {
+  const { error } = await db
+    .from("quotes")
+    .delete()
+    .eq("id", quoteId)
+    .eq("wallet_address", wallet);
+
+  if (error) throw new Error(`deleteQuote: ${error.message}`);
+}
+
 export async function recordApiCall(
   db: Db,
   call: Database["public"]["Tables"]["api_calls"]["Insert"],
