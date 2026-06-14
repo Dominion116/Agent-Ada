@@ -178,7 +178,8 @@ router.get("/agent/balance", requireAuth, async (req, res, next) => {
   try {
     const { getAllStablecoinBalances } = await import("../onchain/celo-client.js");
     const balances = await getAllStablecoinBalances(req.walletAddress as `0x${string}`);
-    res.json({ balances });
+    // `raw` is a bigint, which JSON.stringify can't serialize on its own.
+    res.json({ balances: balances.map((b) => ({ ...b, raw: b.raw.toString() })) });
   } catch (err) { next(err); }
 });
 
