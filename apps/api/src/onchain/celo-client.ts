@@ -89,7 +89,7 @@ export interface StablecoinBalance {
   formatted: string; // human-readable, e.g. "1234.56"
 }
 
-const ASSET_DECIMALS: Record<Asset, number> = {
+export const ASSET_DECIMALS: Record<Asset, number> = {
   cUSD: 18,
   USDC: 6,
 };

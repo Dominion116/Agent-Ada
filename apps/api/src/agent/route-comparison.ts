@@ -1,6 +1,6 @@
 import type { YieldData, Route, Policy, Chain, Venue, Asset } from "@ada/shared";
 import { USDC_ADDRESSES, type LifiQuoter, type LifiQuoteResult } from "./lifi-client.js";
-import { CELO_ASSETS } from "../onchain/celo-client.js";
+import { CELO_ASSETS, ASSET_DECIMALS } from "../onchain/celo-client.js";
 
 // ── Constants ─────────────────────────────────────────────────
 
@@ -16,10 +16,25 @@ const DEFAULT_MAX_PAYBACK_DAYS = 30;
 /**
  * Basis points cost of a bridge move as a fraction of principal.
  * routeCostBps = (amountIn - amountOut) * 10_000 / amountIn
+ *
+ * `decimalsIn`/`decimalsOut` let amounts in different units be compared
+ * fairly — e.g. a cUSD (18 decimals) source bridged to a USDC (6 decimals)
+ * destination. Both default to 6 (USDC-to-USDC, the common case).
  */
-export function computeRouteCostBps(amountIn: bigint, amountOut: bigint): number {
+export function computeRouteCostBps(
+  amountIn: bigint,
+  amountOut: bigint,
+  decimalsIn = 6,
+  decimalsOut = 6,
+): number {
   if (amountIn === 0n) return 0;
-  const cost = amountIn > amountOut ? amountIn - amountOut : 0n;
+  const normalizedOut =
+    decimalsOut === decimalsIn
+      ? amountOut
+      : decimalsOut < decimalsIn
+        ? amountOut * 10n ** BigInt(decimalsIn - decimalsOut)
+        : amountOut / 10n ** BigInt(decimalsOut - decimalsIn);
+  const cost = amountIn > normalizedOut ? amountIn - normalizedOut : 0n;
   return Number((cost * 10_000n) / amountIn);
 }
 
@@ -77,7 +92,12 @@ function buildCrossChainRoute(
   dest: YieldData,
   quote: LifiQuoteResult,
 ): Route {
-  const routeCostBps = computeRouteCostBps(quote.fromAmount, quote.toAmount);
+  const routeCostBps = computeRouteCostBps(
+    quote.fromAmount,
+    quote.toAmount,
+    ASSET_DECIMALS[source.asset as Asset],
+    ASSET_DECIMALS[dest.asset as Asset],
+  );
   const netGainBps = computeNetGainBps(source.supply_rate_bps, dest.supply_rate_bps);
   const paybackDays = computePaybackDays(routeCostBps, netGainBps);
 
@@ -151,7 +171,8 @@ export interface FindBestRouteOptions {
  *
  * Cross-chain routes are quoted via LI.FI.
  * Same-chain routes (different venue) have zero bridge cost.
- * cUSD is treated as Celo-only (not bridgeable cross-chain).
+ * A cUSD position on Celo can bridge into a USDC destination on another
+ * chain (cUSD has no cross-chain liquidity of its own, but USDC does).
  *
  * Returns null when no candidate passes policy, or the yield snapshot
  * contains no better destination than the current position.
@@ -162,10 +183,11 @@ export async function findBestRoute(opts: FindBestRouteOptions): Promise<Route |
   const { lifi, source, allYields, policy, amountIn, fromAddress } = opts;
 
   // Destination candidates: different from source, in allowed chains+venues.
+  // A cUSD source may also bridge into a USDC destination on another chain.
   const destinations = allYields.filter(
     (y) =>
       !(y.chain === source.chain && y.venue === source.venue) &&
-      y.asset === source.asset &&
+      (y.asset === source.asset || (source.asset === "cUSD" && y.asset === "USDC")) &&
       policy.allowed_chains.includes(y.chain as Chain) &&
       policy.allowed_venues.includes(y.venue as Venue),
   );
@@ -179,10 +201,12 @@ export async function findBestRoute(opts: FindBestRouteOptions): Promise<Route |
       // Same-chain move — no bridge needed.
       candidates.push(buildCeloOnlyRoute(source, dest, amountIn));
     } else {
-      // Cross-chain — cUSD cannot be bridged; skip.
-      if (source.asset === "cUSD") continue;
-
-      const fromToken = USDC_ADDRESSES[source.chain as Chain] ?? CELO_ASSETS.USDC;
+      // Cross-chain — bridge via LI.FI. cUSD sources bridge as cUSD; the
+      // destination is always a USDC venue (cUSD has no cross-chain liquidity).
+      const fromToken =
+        source.asset === "cUSD"
+          ? CELO_ASSETS.cUSD
+          : USDC_ADDRESSES[source.chain as Chain] ?? CELO_ASSETS.USDC;
       const toToken = USDC_ADDRESSES[dest.chain as Chain];
       if (!toToken) continue;
 

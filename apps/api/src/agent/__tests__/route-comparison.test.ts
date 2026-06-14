@@ -7,7 +7,8 @@ import {
   findBestRoute,
 } from "../route-comparison.js";
 import type { YieldData, Route, Policy } from "@ada/shared";
-import type { LifiQuoter, LifiQuoteResult } from "../lifi-client.js";
+import { USDC_ADDRESSES, type LifiQuoter, type LifiQuoteResult } from "../lifi-client.js";
+import { CELO_ASSETS } from "../../onchain/celo-client.js";
 
 // ── Fixtures ──────────────────────────────────────────────────
 
@@ -99,6 +100,16 @@ describe("computeRouteCostBps", () => {
 
   it("treats amountOut > amountIn as zero cost (no negative costs)", () => {
     expect(computeRouteCostBps(1_000_000n, 1_010_000n)).toBe(0);
+  });
+
+  it("normalizes a cUSD (18 dec) input against a USDC (6 dec) output", () => {
+    // 1 cUSD in, 0.9995 USDC out → normalized to 18 dec = 0.9995e18 → 5 bps cost
+    expect(computeRouteCostBps(10n ** 18n, 999_500n, 18, 6)).toBe(5);
+  });
+
+  it("normalizes a USDC (6 dec) input against a cUSD (18 dec) output", () => {
+    // 1 USDC in, 0.9995 cUSD out → normalized to 6 dec = 0.9995e6 → 5 bps cost
+    expect(computeRouteCostBps(1_000_000n, 999_500n * 10n ** 12n, 6, 18)).toBe(5);
   });
 });
 
@@ -298,29 +309,35 @@ describe("findBestRoute", () => {
     expect(route?.payback_days).toBe(0);
   });
 
-  it("skips cUSD for cross-chain routes", async () => {
+  it("bridges a cUSD source to a USDC destination cross-chain", async () => {
     const CELO_MOOLA_CUSD: YieldData = {
       ...CELO_MOOLA_USDC,
       asset: "cUSD",
     };
-    const BASE_AAVE_CUSD: YieldData = {
-      ...BASE_AAVE_USDC,
-      asset: "cUSD",
-    };
-    const quoter = makeQuoter(PRINCIPAL, PRINCIPAL);
+    // 1 cUSD (18 dec) in, 0.9995 USDC (6 dec) out → 5 bps cost.
+    const cusdAmountIn = 10n ** 18n;
+    const quoter = makeQuoter(cusdAmountIn, 999_500n);
 
     const route = await findBestRoute({
       lifi: quoter,
       source: CELO_MOOLA_CUSD,
-      allYields: [CELO_MOOLA_CUSD, BASE_AAVE_CUSD],
+      allYields: [CELO_MOOLA_CUSD, BASE_AAVE_USDC],
       policy: BASE_POLICY,
-      amountIn: PRINCIPAL,
+      amountIn: cusdAmountIn,
       fromAddress: FROM_ADDRESS,
     });
 
-    // cUSD cannot be bridged; no same-chain alternative → null.
-    expect(route).toBeNull();
-    expect(quoter.getQuote).not.toHaveBeenCalled();
+    expect(route).not.toBeNull();
+    expect(route?.dest_chain).toBe("base");
+    expect(route?.dest_venue).toBe("aave-v3");
+    expect(route?.asset).toBe("cUSD");
+    expect(route?.route_cost_bps).toBe(5);
+    expect(quoter.getQuote).toHaveBeenCalledWith(
+      expect.objectContaining({
+        fromTokenAddress: CELO_ASSETS.cUSD,
+        toTokenAddress: USDC_ADDRESSES.base,
+      }),
+    );
   });
 
   it("picks the highest net_gain_bps among multiple passing routes", async () => {
