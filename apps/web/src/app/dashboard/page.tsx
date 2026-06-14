@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { ArrowUpRight, Sparkles } from "lucide-react";
 import type { Route } from "@ada/shared";
-import { useYields, useBalance, useRuns } from "@/hooks/use-agent-data";
+import { useYields, useBalance, useRuns, usePolicy } from "@/hooks/use-agent-data";
 import { api, ApiError } from "@/lib/api";
 import { PageHeader, Section } from "@/components/dashboard/section";
 import { YieldCard } from "@/components/dashboard/yield-card";
@@ -21,11 +21,13 @@ export default function OverviewPage() {
   const { yields, isLoading: yieldsLoading, error: yieldsError } = useYields();
   const { balances } = useBalance(true);
   const { runs, mutate: mutateRuns } = useRuns(true, 1);
+  const { policy } = usePolicy(true);
 
   const [quote, setQuote] = useState<Quote | null>(null);
   const [quoting, setQuoting] = useState(false);
   const [executing, setExecuting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [info, setInfo] = useState<string | null>(null);
 
   // Sort yields by APR; the top one is the best available opportunity.
   const sorted = useMemo(
@@ -37,12 +39,19 @@ export default function OverviewPage() {
   async function findRebalance() {
     setQuoting(true);
     setError(null);
+    setInfo(null);
     try {
       const cusd = balances.find((b) => b.asset === "cUSD");
       const result = await api.quote(cusd?.raw ?? "0", "cUSD");
       setQuote(result);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Could not build a quote right now.");
+      // A 422 means Ada looked and found nothing actionable (no profitable
+      // route, or no policy yet); that's a normal outcome, not a failure.
+      if (err instanceof ApiError && err.status === 422) {
+        setInfo(err.message);
+      } else {
+        setError(err instanceof ApiError ? err.message : "Could not build a quote right now.");
+      }
     } finally {
       setQuoting(false);
     }
@@ -78,6 +87,20 @@ export default function OverviewPage() {
 
       {error ? (
         <p className="rounded-md bg-destructive/10 px-4 py-3 text-sm text-destructive">{error}</p>
+      ) : null}
+
+      {info ? (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-md bg-muted px-4 py-3 text-sm text-muted-foreground">
+          <span>{info}</span>
+          {!policy ? (
+            <Link
+              href="/dashboard/policies"
+              className="inline-flex items-center gap-1 font-semibold text-primary underline-offset-4 hover:underline"
+            >
+              Set up a policy <ArrowUpRight className="h-4 w-4" />
+            </Link>
+          ) : null}
+        </div>
       ) : null}
 
       {/* Latest run banner */}
