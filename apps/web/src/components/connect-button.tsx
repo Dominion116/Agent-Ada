@@ -2,11 +2,11 @@
 
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
-import { truncateAddress } from "@/lib/utils";
 
 /**
  * Single control that walks the user through connect then sign-in.
- * Shows the truncated address and a sign-out option once authenticated.
+ * Once authenticated, the button stays as "Connect Wallet" but disabled —
+ * session management lives in the dashboard, not the landing page.
  */
 export function ConnectButton() {
   const {
@@ -18,19 +18,13 @@ export function ConnectButton() {
     error,
     connect,
     signIn,
-    signOut,
   } = useAuth();
 
   if (hasSession && walletAddress) {
     return (
-      <div className="flex items-center gap-3">
-        <span className="rounded-md bg-secondary px-3 py-1.5 text-sm font-medium">
-          {truncateAddress(walletAddress)}
-        </span>
-        <Button variant="outline" size="sm" onClick={signOut}>
-          Sign out
-        </Button>
-      </div>
+      <Button size="lg" disabled>
+        Connect Wallet
+      </Button>
     );
   }
 
