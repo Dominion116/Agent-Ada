@@ -189,6 +189,10 @@ export function FeatureScroll() {
               label: "x402",
               body: "Pay-per-call settlement is recorded on chain, so usage is auditable end to end.",
             },
+            {
+              label: "A2A",
+              body: "A public Agent Card and JSON-RPC endpoint let other agents discover Ada's skills, fetch yields, and request rebalances directly.",
+            },
           ]}
         />
       </FlowSection>
