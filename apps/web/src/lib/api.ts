@@ -139,7 +139,12 @@ const realApi = {
 
   run: (id: string) => request<{ run: Run }>(`/api/agent/runs/${id}`),
 
-  getPolicy: () => request<{ policy: Policy }>("/api/agent/policy"),
+  getPolicy: (): Promise<{ policy: Policy | null }> =>
+    request<{ policy: Policy }>("/api/agent/policy").catch((err) => {
+      // A wallet with no saved policy yet gets a 404, not an error.
+      if (err instanceof ApiError && err.status === 404) return { policy: null };
+      throw err;
+    }),
 
   updatePolicy: (policy: PolicyUpdate) =>
     request<{ policy: Policy }>("/api/agent/policy", { method: "PUT", body: policy }),
